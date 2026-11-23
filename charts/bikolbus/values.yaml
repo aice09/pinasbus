@@ -1,0 +1,40 @@
+image:
+  repository: ghcr.io/aice09/bikolbus
+  tag: ""            # defaults to the chart appVersion; CI publishes sha-<short>, main and semver tags
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+replicaCount: 2
+
+# Public URL used in PayMongo success/cancel redirects.
+host: bikolbus.phlopentech.org
+publicBaseUrl: ""    # defaults to https://<host>
+
+# Emissary Mapping only. Never add an Emissary Host for a name a wildcard Host already covers.
+mapping:
+  enabled: true
+
+payments:
+  # Secret with PAYMONGO_SECRET_KEY and PAYMONGO_WEBHOOK_SECRET. Without it the site runs but online payment is off.
+  existingSecret: bikolbus-paymongo
+  methods: "card,gcash,paymaya"
+
+database:
+  # cnpg: the chart creates a CloudNativePG Cluster; the app reads the uri from <release>-db-app.
+  cnpg:
+    enabled: true
+    instances: 1
+    imageName: ghcr.io/cloudnative-pg/postgresql:17.12-standard-trixie
+    size: 2Gi
+    storageClass: ceph-rbd-infra-k8s
+  # Or point at your own database: Secret with key DATABASE_URL (used when cnpg.enabled is false).
+  existingSecret: ""
+
+networkPolicy:
+  enabled: true
+  ingressNamespace: emissary
+  cnpgNamespace: cnpg-system
+
+resources:
+  requests: { cpu: 50m, memory: 160Mi }
+  limits: { cpu: "1", memory: 512Mi }

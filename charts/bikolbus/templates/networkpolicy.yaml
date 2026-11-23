@@ -1,0 +1,46 @@
+{{- if .Values.networkPolicy.enabled }}
+# Ingress only: deny by default, then allow Emissary -> web, web -> db, CNPG operator -> db.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-default-deny
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-web-from-ingress
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- include "bikolbus.selector" . | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: {{ .Values.networkPolicy.ingressNamespace }} } }
+      ports: [{ port: 3000, protocol: TCP }]
+{{- if .Values.database.cnpg.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-db
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: { cnpg.io/cluster: {{ .Release.Name }}-db }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {{- include "bikolbus.selector" . | nindent 14 }}
+        - podSelector: { matchLabels: { cnpg.io/cluster: {{ .Release.Name }}-db } }
+      ports: [{ port: 5432, protocol: TCP }]
+    - from:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: {{ .Values.networkPolicy.cnpgNamespace }} } }
+      ports: [{ port: 8000, protocol: TCP }, { port: 5432, protocol: TCP }]
+{{- end }}
+{{- end }}

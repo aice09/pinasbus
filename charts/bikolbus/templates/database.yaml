@@ -1,0 +1,21 @@
+{{- if .Values.database.cnpg.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Release.Name }}-db
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep   # uninstalling the chart must not delete bookings
+spec:
+  instances: {{ .Values.database.cnpg.instances }}
+  imageName: {{ .Values.database.cnpg.imageName }}
+  bootstrap:
+    initdb: { database: bikolbus, owner: bikolbus }
+  storage:
+    size: {{ .Values.database.cnpg.size }}
+    storageClass: {{ .Values.database.cnpg.storageClass }}
+    resizeInUseVolumes: true
+  resources:
+    requests: { cpu: 50m, memory: 192Mi }
+    limits: { memory: 512Mi }
+{{- end }}

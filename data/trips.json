@@ -1,0 +1,1342 @@
+[
+ {
+  "code": "23A",
+  "dir": "north",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1985,
+  "pickups": [
+   {
+    "station": "Masbate City",
+    "time": "11:30"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "EDSA Cubao"
+  ],
+  "id": "23a-n"
+ },
+ {
+  "code": "26E",
+  "dir": "north",
+  "bus": "NON-AIRCON",
+  "fare": 1635,
+  "pickups": [
+   {
+    "station": "Masbate City",
+    "time": "11:30"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "EDSA Cubao"
+  ],
+  "id": "26e-n"
+ },
+ {
+  "code": "A",
+  "dir": "north",
+  "bus": "ELITE 26",
+  "fare": 1700,
+  "pickups": [
+   {
+    "station": "Naga CBD",
+    "time": "08:30"
+   }
+  ],
+  "dropoffs": [
+   "Aurora Cubao"
+  ],
+  "id": "a-n"
+ },
+ {
+  "code": "A",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 1700,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "08:30"
+   },
+   {
+    "station": "Alabang",
+    "time": "09:30"
+   },
+   {
+    "station": "Turbina",
+    "time": "10:00"
+   }
+  ],
+  "dropoffs": [
+   "Naga CBD"
+  ],
+  "id": "a-s"
+ },
+ {
+  "code": "B",
+  "dir": "north",
+  "bus": "ELITE 26",
+  "fare": 1850,
+  "pickups": [
+   {
+    "station": "Legazpi",
+    "time": "17:30"
+   }
+  ],
+  "dropoffs": [
+   "Arcovia Pasig",
+   "EDSA Cubao"
+  ],
+  "id": "b-n"
+ },
+ {
+  "code": "B",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 1850,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "19:00"
+   },
+   {
+    "station": "Arcovia Pasig",
+    "time": "20:00"
+   }
+  ],
+  "dropoffs": [
+   "Legazpi"
+  ],
+  "id": "b-s"
+ },
+ {
+  "code": "B17",
+  "dir": "north",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1675,
+  "pickups": [
+   {
+    "station": "Bulan",
+    "time": "15:30"
+   },
+   {
+    "station": "Naga CBD",
+    "time": "21:00"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "PITX"
+  ],
+  "id": "b17-n"
+ },
+ {
+  "code": "B17",
+  "dir": "south",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1675,
+  "pickups": [
+   {
+    "station": "PITX",
+    "time": "16:30"
+   },
+   {
+    "station": "Alabang",
+    "time": "17:30"
+   },
+   {
+    "station": "Turbina",
+    "time": "18:00"
+   }
+  ],
+  "dropoffs": [
+   "Bulan"
+  ],
+  "id": "b17-s"
+ },
+ {
+  "code": "C",
+  "dir": "north",
+  "bus": "ELITE 26",
+  "fare": 1700,
+  "pickups": [
+   {
+    "station": "Naga CBD",
+    "time": "09:00"
+   }
+  ],
+  "dropoffs": [
+   "PITX"
+  ],
+  "id": "c-n"
+ },
+ {
+  "code": "C",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 1700,
+  "pickups": [
+   {
+    "station": "PITX",
+    "time": "10:30"
+   },
+   {
+    "station": "Turbina",
+    "time": "12:00"
+   }
+  ],
+  "dropoffs": [
+   "Naga CBD"
+  ],
+  "id": "c-s"
+ },
+ {
+  "code": "D",
+  "dir": "north",
+  "bus": "ELITE 26",
+  "fare": 1850,
+  "pickups": [
+   {
+    "station": "Legazpi",
+    "time": "17:00"
+   },
+   {
+    "station": "Iriga",
+    "time": "19:00"
+   }
+  ],
+  "dropoffs": [
+   "PITX"
+  ],
+  "id": "d-n"
+ },
+ {
+  "code": "D",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 1850,
+  "pickups": [
+   {
+    "station": "PITX",
+    "time": "18:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "19:00"
+   }
+  ],
+  "dropoffs": [
+   "Legazpi"
+  ],
+  "id": "d-s"
+ },
+ {
+  "code": "E",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 1700,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "16:00"
+   },
+   {
+    "station": "Avenida",
+    "time": "17:00"
+   },
+   {
+    "station": "Ermita",
+    "time": "18:00"
+   }
+  ],
+  "dropoffs": [
+   "Naga CBD"
+  ],
+  "id": "e-s"
+ },
+ {
+  "code": "ECOCAT-A",
+  "dir": "north",
+  "bus": "NON-AIRCON",
+  "fare": 1135,
+  "pickups": [
+   {
+    "station": "Virac",
+    "time": "11:30"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "EDSA Cubao"
+  ],
+  "id": "ecocat-a-n"
+ },
+ {
+  "code": "ECOCAT-A",
+  "dir": "south",
+  "bus": "NON-AIRCON",
+  "fare": 1135,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "15:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "16:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "16:30"
+   }
+  ],
+  "dropoffs": [
+   "Virac"
+  ],
+  "id": "ecocat-a-s"
+ },
+ {
+  "code": "EXECAT-A",
+  "dir": "north",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1535,
+  "pickups": [
+   {
+    "station": "Virac",
+    "time": "11:00"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "PITX"
+  ],
+  "id": "execat-a-n"
+ },
+ {
+  "code": "EXECAT-A",
+  "dir": "south",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1535,
+  "pickups": [
+   {
+    "station": "PITX",
+    "time": "15:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "16:00"
+   }
+  ],
+  "dropoffs": [
+   "Virac"
+  ],
+  "id": "execat-a-s"
+ },
+ {
+  "code": "EXECAT-B",
+  "dir": "north",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1535,
+  "pickups": [
+   {
+    "station": "Virac",
+    "time": "11:30"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "EDSA Cubao"
+  ],
+  "id": "execat-b-n"
+ },
+ {
+  "code": "EXECAT-B",
+  "dir": "south",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1535,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "15:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "16:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "16:30"
+   }
+  ],
+  "dropoffs": [
+   "Virac"
+  ],
+  "id": "execat-b-s"
+ },
+ {
+  "code": "EXELEG",
+  "dir": "north",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1385,
+  "pickups": [
+   {
+    "station": "Legazpi",
+    "time": "17:30"
+   }
+  ],
+  "dropoffs": [
+   "PITX"
+  ],
+  "id": "exeleg-n"
+ },
+ {
+  "code": "EXETAB-A",
+  "dir": "north",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1450,
+  "pickups": [
+   {
+    "station": "Tabaco",
+    "time": "17:00"
+   },
+   {
+    "station": "Naga CBD",
+    "time": "19:30"
+   }
+  ],
+  "dropoffs": [
+   "PITX"
+  ],
+  "id": "exetab-a-n"
+ },
+ {
+  "code": "EXETAB-A",
+  "dir": "south",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1450,
+  "pickups": [
+   {
+    "station": "PITX",
+    "time": "18:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "19:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "19:30"
+   }
+  ],
+  "dropoffs": [
+   "Tabaco"
+  ],
+  "id": "exetab-a-s"
+ },
+ {
+  "code": "F",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 1700,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "19:00"
+   }
+  ],
+  "dropoffs": [
+   "Naga CBD"
+  ],
+  "id": "f-s"
+ },
+ {
+  "code": "I",
+  "dir": "north",
+  "bus": "ELITE 26",
+  "fare": 1850,
+  "pickups": [
+   {
+    "station": "Legazpi",
+    "time": "17:00"
+   }
+  ],
+  "dropoffs": [
+   "EDSA Cubao"
+  ],
+  "id": "i-n"
+ },
+ {
+  "code": "J",
+  "dir": "north",
+  "bus": "ELITE 26",
+  "fare": 1850,
+  "pickups": [
+   {
+    "station": "Legazpi",
+    "time": "17:15"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "PITX"
+  ],
+  "id": "j-n"
+ },
+ {
+  "code": "J",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 1850,
+  "pickups": [
+   {
+    "station": "Alabang",
+    "time": "21:30"
+   }
+  ],
+  "dropoffs": [
+   "Legazpi"
+  ],
+  "id": "j-s"
+ },
+ {
+  "code": "M",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 2650,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "09:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "10:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "11:00"
+   }
+  ],
+  "dropoffs": [
+   "Masbate City"
+  ],
+  "id": "m-s"
+ },
+ {
+  "code": "N",
+  "dir": "north",
+  "bus": "ELITE 26",
+  "fare": 2050,
+  "pickups": [
+   {
+    "station": "Gubat",
+    "time": "16:30"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "Aurora Cubao"
+  ],
+  "id": "n-n"
+ },
+ {
+  "code": "N",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 2050,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "20:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "21:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "21:30"
+   }
+  ],
+  "dropoffs": [
+   "Gubat"
+  ],
+  "id": "n-s"
+ },
+ {
+  "code": "P",
+  "dir": "north",
+  "bus": "ELITE 26",
+  "fare": 1850,
+  "pickups": [
+   {
+    "station": "Lagonoy",
+    "time": "17:30"
+   }
+  ],
+  "dropoffs": [
+   "PITX"
+  ],
+  "id": "p-n"
+ },
+ {
+  "code": "P",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 1850,
+  "pickups": [
+   {
+    "station": "PITX",
+    "time": "20:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "21:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "21:30"
+   }
+  ],
+  "dropoffs": [
+   "Lagonoy"
+  ],
+  "id": "p-s"
+ },
+ {
+  "code": "P2",
+  "dir": "south",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1710,
+  "pickups": [
+   {
+    "station": "Turbina",
+    "time": "15:00"
+   }
+  ],
+  "dropoffs": [
+   "Tacloban"
+  ],
+  "id": "p2-s"
+ },
+ {
+  "code": "Q",
+  "dir": "north",
+  "bus": "ELITE 26",
+  "fare": 1850,
+  "pickups": [
+   {
+    "station": "Legazpi",
+    "time": "08:00"
+   },
+   {
+    "station": "Naga CBD",
+    "time": "11:30"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "Arcovia Pasig",
+   "EDSA Cubao"
+  ],
+  "id": "q-n"
+ },
+ {
+  "code": "Q",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 1850,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "08:00"
+   },
+   {
+    "station": "Arcovia Pasig",
+    "time": "09:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "09:30"
+   },
+   {
+    "station": "Turbina",
+    "time": "10:00"
+   }
+  ],
+  "dropoffs": [
+   "Legazpi"
+  ],
+  "id": "q-s"
+ },
+ {
+  "code": "R1",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 1700,
+  "pickups": [
+   {
+    "station": "Alabang",
+    "time": "20:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "20:30"
+   }
+  ],
+  "dropoffs": [
+   "Naga CBD"
+  ],
+  "id": "r1-s"
+ },
+ {
+  "code": "SB",
+  "dir": "north",
+  "bus": "Regular Sleeper Bus",
+  "fare": 2950,
+  "pickups": [
+   {
+    "station": "Masbate City",
+    "time": "10:00"
+   },
+   {
+    "station": "Naga CBD",
+    "time": "20:30"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "EDSA Cubao"
+  ],
+  "id": "sb-n"
+ },
+ {
+  "code": "SB",
+  "dir": "south",
+  "bus": "Regular Sleeper Bus",
+  "fare": 2950,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "10:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "11:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "11:30"
+   }
+  ],
+  "dropoffs": [
+   "Masbate City"
+  ],
+  "id": "sb-s"
+ },
+ {
+  "code": "SR",
+  "dir": "north",
+  "bus": "Ultimate Sleeper Bus",
+  "fare": 2900,
+  "pickups": [
+   {
+    "station": "Gubat",
+    "time": "16:30"
+   }
+  ],
+  "dropoffs": [
+   "Arcovia Pasig",
+   "EDSA Cubao"
+  ],
+  "id": "sr-n"
+ },
+ {
+  "code": "SR",
+  "dir": "south",
+  "bus": "Ultimate Sleeper Bus",
+  "fare": 2900,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "18:30"
+   },
+   {
+    "station": "Arcovia Pasig",
+    "time": "19:30"
+   },
+   {
+    "station": "Turbina",
+    "time": "20:30"
+   }
+  ],
+  "dropoffs": [
+   "Gubat"
+  ],
+  "id": "sr-s"
+ },
+ {
+  "code": "T",
+  "dir": "south",
+  "bus": "ELITE 26",
+  "fare": 1700,
+  "pickups": [
+   {
+    "station": "Alabang",
+    "time": "20:00"
+   }
+  ],
+  "dropoffs": [
+   "Naga CBD"
+  ],
+  "id": "t-s"
+ },
+ {
+  "code": "V1",
+  "dir": "north",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1535,
+  "pickups": [
+   {
+    "station": "Virac",
+    "time": "11:00"
+   }
+  ],
+  "dropoffs": [
+   "Arcovia Pasig",
+   "EDSA Cubao"
+  ],
+  "id": "v1-n"
+ },
+ {
+  "code": "V1",
+  "dir": "south",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1535,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "14:30"
+   },
+   {
+    "station": "Arcovia Pasig",
+    "time": "15:30"
+   },
+   {
+    "station": "Turbina",
+    "time": "16:30"
+   }
+  ],
+  "dropoffs": [
+   "Virac"
+  ],
+  "id": "v1-s"
+ },
+ {
+  "code": "V2",
+  "dir": "north",
+  "bus": "REGULAR WITHOUT CR",
+  "fare": 1535,
+  "pickups": [
+   {
+    "station": "Virac",
+    "time": "11:00"
+   }
+  ],
+  "dropoffs": [
+   "EDSA Cubao"
+  ],
+  "id": "v2-n"
+ },
+ {
+  "code": "Z1",
+  "dir": "north",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1385,
+  "pickups": [
+   {
+    "station": "Legazpi",
+    "time": "18:00"
+   }
+  ],
+  "dropoffs": [
+   "PITX"
+  ],
+  "id": "z1-n"
+ },
+ {
+  "code": "Z1",
+  "dir": "south",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1385,
+  "pickups": [
+   {
+    "station": "PITX",
+    "time": "19:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "20:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "20:30"
+   }
+  ],
+  "dropoffs": [
+   "Legazpi"
+  ],
+  "id": "z1-s"
+ },
+ {
+  "code": "Z10",
+  "dir": "north",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1535,
+  "pickups": [
+   {
+    "station": "Virac",
+    "time": "11:30"
+   }
+  ],
+  "dropoffs": [
+   "Alabang",
+   "PITX"
+  ],
+  "id": "z10-n"
+ },
+ {
+  "code": "Z10",
+  "dir": "south",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1535,
+  "pickups": [
+   {
+    "station": "PITX",
+    "time": "14:30"
+   },
+   {
+    "station": "Alabang",
+    "time": "15:30"
+   }
+  ],
+  "dropoffs": [
+   "Virac"
+  ],
+  "id": "z10-s"
+ },
+ {
+  "code": "Z15",
+  "dir": "north",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1535,
+  "pickups": [
+   {
+    "station": "Virac",
+    "time": "11:30"
+   }
+  ],
+  "dropoffs": [
+   "EDSA Cubao"
+  ],
+  "id": "z15-n"
+ },
+ {
+  "code": "Z15",
+  "dir": "south",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1535,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "14:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "15:00"
+   }
+  ],
+  "dropoffs": [
+   "Virac"
+  ],
+  "id": "z15-s"
+ },
+ {
+  "code": "Z16",
+  "dir": "north",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1675,
+  "pickups": [
+   {
+    "station": "Bulan",
+    "time": "15:00"
+   }
+  ],
+  "dropoffs": [
+   "Arcovia Pasig",
+   "EDSA Cubao"
+  ],
+  "id": "z16-n"
+ },
+ {
+  "code": "Z16",
+  "dir": "south",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1675,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "16:00"
+   },
+   {
+    "station": "Arcovia Pasig",
+    "time": "17:00"
+   }
+  ],
+  "dropoffs": [
+   "Bulan"
+  ],
+  "id": "z16-s"
+ },
+ {
+  "code": "Z17",
+  "dir": "north",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1560,
+  "pickups": [
+   {
+    "station": "Gubat",
+    "time": "16:00"
+   },
+   {
+    "station": "Naga CBD",
+    "time": "21:30"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "Aurora Cubao"
+  ],
+  "id": "z17-n"
+ },
+ {
+  "code": "Z17",
+  "dir": "south",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1560,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "19:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "20:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "20:30"
+   }
+  ],
+  "dropoffs": [
+   "Gubat"
+  ],
+  "id": "z17-s"
+ },
+ {
+  "code": "Z2",
+  "dir": "north",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1385,
+  "pickups": [
+   {
+    "station": "Legazpi",
+    "time": "18:00"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "Aurora Cubao"
+  ],
+  "id": "z2-n"
+ },
+ {
+  "code": "Z2",
+  "dir": "south",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1385,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "20:30"
+   },
+   {
+    "station": "Alabang",
+    "time": "21:30"
+   },
+   {
+    "station": "Turbina",
+    "time": "22:00"
+   }
+  ],
+  "dropoffs": [
+   "Legazpi"
+  ],
+  "id": "z2-s"
+ },
+ {
+  "code": "Z3",
+  "dir": "north",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1185,
+  "pickups": [
+   {
+    "station": "Naga CBD",
+    "time": "08:00"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "Aurora Cubao"
+  ],
+  "id": "z3-n"
+ },
+ {
+  "code": "Z3",
+  "dir": "south",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1185,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "08:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "09:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "09:30"
+   }
+  ],
+  "dropoffs": [
+   "Naga CBD"
+  ],
+  "id": "z3-s"
+ },
+ {
+  "code": "Z5",
+  "dir": "north",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1560,
+  "pickups": [
+   {
+    "station": "Gubat",
+    "time": "07:30"
+   },
+   {
+    "station": "Naga CBD",
+    "time": "13:00"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "Aurora Cubao"
+  ],
+  "id": "z5-n"
+ },
+ {
+  "code": "Z5",
+  "dir": "south",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1560,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "07:30"
+   },
+   {
+    "station": "Alabang",
+    "time": "08:30"
+   },
+   {
+    "station": "Turbina",
+    "time": "09:00"
+   }
+  ],
+  "dropoffs": [
+   "Gubat"
+  ],
+  "id": "z5-s"
+ },
+ {
+  "code": "Z6",
+  "dir": "north",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1450,
+  "pickups": [
+   {
+    "station": "Tabaco",
+    "time": "17:00"
+   }
+  ],
+  "dropoffs": [
+   "Aurora Cubao",
+   "Avenida",
+   "Ermita"
+  ],
+  "id": "z6-n"
+ },
+ {
+  "code": "Z6",
+  "dir": "south",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1450,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "17:00"
+   },
+   {
+    "station": "Avenida",
+    "time": "18:00"
+   },
+   {
+    "station": "Ermita",
+    "time": "19:15"
+   },
+   {
+    "station": "Turbina",
+    "time": "20:15"
+   }
+  ],
+  "dropoffs": [
+   "Tabaco"
+  ],
+  "id": "z6-s"
+ },
+ {
+  "code": "Z7",
+  "dir": "north",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1285,
+  "pickups": [
+   {
+    "station": "Iriga",
+    "time": "18:15"
+   }
+  ],
+  "dropoffs": [
+   "Alabang Starmall",
+   "Aurora Cubao"
+  ],
+  "id": "z7-n"
+ },
+ {
+  "code": "Z7",
+  "dir": "south",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1285,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "21:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "22:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "22:30"
+   }
+  ],
+  "dropoffs": [
+   "Iriga"
+  ],
+  "id": "z7-s"
+ },
+ {
+  "code": "Z8",
+  "dir": "north",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1560,
+  "pickups": [
+   {
+    "station": "Gubat",
+    "time": "17:00"
+   }
+  ],
+  "dropoffs": [
+   "PITX"
+  ],
+  "id": "z8-n"
+ },
+ {
+  "code": "Z8",
+  "dir": "south",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1560,
+  "pickups": [
+   {
+    "station": "PITX",
+    "time": "19:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "20:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "20:30"
+   }
+  ],
+  "dropoffs": [
+   "Gubat"
+  ],
+  "id": "z8-s"
+ },
+ {
+  "code": "Z9",
+  "dir": "north",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1385,
+  "pickups": [
+   {
+    "station": "Lagonoy",
+    "time": "17:00"
+   }
+  ],
+  "dropoffs": [
+   "Alabang",
+   "Aurora Cubao"
+  ],
+  "id": "z9-n"
+ },
+ {
+  "code": "Z9",
+  "dir": "south",
+  "bus": "SKYBUS WITH CR",
+  "fare": 1385,
+  "pickups": [
+   {
+    "station": "EDSA Cubao",
+    "time": "21:00"
+   },
+   {
+    "station": "Alabang",
+    "time": "22:00"
+   },
+   {
+    "station": "Turbina",
+    "time": "22:30"
+   }
+  ],
+  "dropoffs": [
+   "Lagonoy"
+  ],
+  "id": "z9-s"
+ }
+]
