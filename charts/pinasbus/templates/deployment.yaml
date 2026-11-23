@@ -1,0 +1,110 @@
+{{- if and (not .Values.database.cnpg.enabled) (not .Values.database.existingSecret) }}
+{{- fail "set database.cnpg.enabled=true or database.existingSecret" }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels: {{- include "bikolbus.selector" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "bikolbus.labels" . | nindent 8 }}
+        app.kubernetes.io/component: web
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {{- include "bikolbus.selector" . | nindent 14 }}
+      containers:
+        - name: web
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - { name: http, containerPort: 3000 }
+          env:
+            - name: PUBLIC_BASE_URL
+              value: {{ .Values.publicBaseUrl | default (printf "https://%s" .Values.host) | quote }}
+            - name: PAYMONGO_METHODS
+              value: {{ .Values.payments.methods | quote }}
+            - name: PLATFORM_ADMIN_EMAILS
+              value: {{ .Values.platformAdminEmails | default .Values.adminEmails | quote }}
+            {{- if .Values.demo.accounts }}
+            - name: DEMO_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ .Release.Name }}-demo, key: password } }
+            - name: DEMO_PLATFORM_ADMIN
+              value: {{ .Values.demo.platformAdmin | quote }}
+            {{- end }}
+            - name: METRICS_TOKEN
+              valueFrom: { secretKeyRef: { name: {{ .Release.Name }}-metrics, key: token } }
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                {{- if .Values.database.cnpg.enabled }}
+                  name: {{ .Release.Name }}-db-app
+                  key: uri
+                {{- else }}
+                  name: {{ .Values.database.existingSecret }}
+                  key: DATABASE_URL
+                {{- end }}
+            {{- if .Values.payments.existingSecret }}
+            - name: PAYMONGO_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: {{ .Values.payments.existingSecret }}, key: PAYMONGO_SECRET_KEY, optional: true } }
+            - name: PAYMONGO_WEBHOOK_SECRET
+              valueFrom: { secretKeyRef: { name: {{ .Values.payments.existingSecret }}, key: PAYMONGO_WEBHOOK_SECRET, optional: true } }
+            {{- end }}
+          readinessProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /api/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            failureThreshold: 6
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: cache, mountPath: /app/.next/cache }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: cache, emptyDir: { sizeLimit: 256Mi } }
+        - { name: tmp, emptyDir: { sizeLimit: 64Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "bikolbus.selector" . | nindent 4 }}
+  ports:
+    - { name: http, port: 80, targetPort: http }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Release.Name }}
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels: {{- include "bikolbus.selector" . | nindent 6 }}

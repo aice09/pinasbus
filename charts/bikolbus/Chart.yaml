@@ -1,6 +1,0 @@
-apiVersion: v2
-name: bikolbus
-description: BikolBus seat booking (Next.js) with a CloudNativePG database and PayMongo payments
-type: application
-version: 0.1.0
-appVersion: "0.1.0"

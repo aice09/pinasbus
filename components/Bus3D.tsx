@@ -3,10 +3,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { seatName, type Seat } from '@/lib/layouts';
+import { PASSENGER_KINDS, seatName, type Seat } from '@/lib/layouts';
+import type { SeatViewProps } from './SeatPlan';
 
-type Props = { layout: Seat[]; taken: Set<string>; selected: string[]; onToggle: (id: string) => void; restroom: boolean };
+type Props = SeatViewProps;
 
+const KIND: Record<string, string> = { pwd: '#2f6fb3', senior: '#b7791f', priority: '#6b4fa0', reserved: '#8f958b', driver: '#3a3f3b', conductor: '#3a3f3b', crew: '#3a3f3b', unavailable: '#6d726a' };
 const C = { free: '#f3f5ef', sel: '#c8322b', taken: '#8f958b', hover: '#2e6b52', body: '#1f4d3a', floor: '#cfd5c8', wheel: '#1d1f1e', glass: '#9cc3d5' };
 const COL_W = 0.62;
 
@@ -74,16 +76,17 @@ function Tag({ text, position, scale = 1 }: { text: string; position: [number, n
 }
 
 function SeatMesh({ seat, pos, state, hovered, onHover, onToggle }: {
-  seat: Seat; pos: [number, number, number]; state: 'free' | 'sel' | 'taken'; hovered: boolean;
+  seat: Seat; pos: [number, number, number]; state: 'free' | 'sel' | 'taken' | 'kind' | 'crew'; hovered: boolean;
   onHover: (id: string | null) => void; onToggle: (id: string) => void;
 }) {
-  const color = state === 'taken' ? C.taken : state === 'sel' ? C.sel : hovered ? C.hover : C.free;
-  const events = state === 'taken' ? {} : {
+  const fixed = state === 'crew';
+  const color = state === 'taken' ? C.taken : state === 'sel' ? C.sel : hovered ? C.hover : fixed ? KIND[seat.kind] : state === 'kind' ? KIND[seat.kind] : C.free;
+  const events = state === 'taken' || fixed ? {} : {
     onPointerOver: (e: { stopPropagation: () => void }) => { e.stopPropagation(); onHover(seat.id); document.body.style.cursor = 'pointer'; },
     onPointerOut: () => { onHover(null); document.body.style.cursor = ''; },
     onClick: (e: { stopPropagation: () => void }) => { e.stopPropagation(); onToggle(seat.id); },
   };
-  const tex = label(seat.id, state !== 'free' || hovered);
+  const tex = label(fixed ? (seat.kind === 'driver' ? 'DRV' : 'CRW') : seat.id, state !== 'free' || hovered);
   if (seat.berth) {
     return (
       <group position={pos} {...events}>
@@ -103,7 +106,7 @@ function SeatMesh({ seat, pos, state, hovered, onHover, onToggle }: {
   );
 }
 
-function Bus({ layout, taken, selected, onToggle, restroom, lift, hover, setHover }: Props & { lift: boolean; hover: string | null; setHover: (id: string | null) => void }) {
+function Bus({ layout, taken, released = new Set(), selected, onToggle, restroom, lift, hover, setHover }: Props & { lift: boolean; hover: string | null; setHover: (id: string | null) => void }) {
   const { sleeper, cols, rows, pitch, width, front, length, height } = dims(layout);
   const z0 = -length / 2 + front + pitch / 2;
   const upper = useRef<THREE.Group>(null);
@@ -119,8 +122,9 @@ function Bus({ layout, taken, selected, onToggle, restroom, lift, hover, setHove
     s.deck ? 1.35 : 0.4,
     z0 + s.row * pitch,
   ];
-  const stateOf = (id: string) => (taken.has(id) ? 'taken' : selected.includes(id) ? 'sel' : 'free') as 'free' | 'sel' | 'taken';
-  const render = (s: Seat) => <SeatMesh key={s.id} seat={s} pos={place(s)} state={stateOf(s.id)} hovered={hover === s.id} onHover={setHover} onToggle={onToggle} />;
+  const stateOf = (s: Seat) => (!PASSENGER_KINDS.includes(s.kind) ? 'crew' : taken.has(s.id) ? 'taken' : selected.includes(s.id) ? 'sel'
+    : s.kind !== 'regular' && !released.has(s.id) ? 'kind' : 'free') as 'free' | 'sel' | 'taken' | 'kind' | 'crew';
+  const render = (s: Seat) => <SeatMesh key={s.id} seat={s} pos={place(s)} state={stateOf(s)} hovered={hover === s.id} onHover={setHover} onToggle={onToggle} />;
 
   const shell = useMemo(() => new THREE.EdgesGeometry(new THREE.BoxGeometry(width, height, length)), [width, height, length]);
 
@@ -136,12 +140,6 @@ function Bus({ layout, taken, selected, onToggle, restroom, lift, hover, setHove
       <lineSegments geometry={shell} position={[0, height / 2 + 0.2, 0]}><lineBasicMaterial color={C.body} transparent opacity={0.45} /></lineSegments>
       {/* windshield */}
       <mesh position={[0, height / 2 + 0.45, -length / 2]}><planeGeometry args={[width, height - 0.5]} /><meshStandardMaterial color={C.glass} transparent opacity={0.35} side={THREE.DoubleSide} /></mesh>
-      {/* driver (Philippine buses are left-hand drive) */}
-      <group position={[-width / 2 + 0.45, 0.4, -length / 2 + 0.75]}>
-        <mesh castShadow><boxGeometry args={[0.45, 0.12, 0.45]} /><meshStandardMaterial color="#3a3f3b" /></mesh>
-        <mesh position={[0, 0.3, 0.22]}><boxGeometry args={[0.45, 0.55, 0.08]} /><meshStandardMaterial color="#3a3f3b" /></mesh>
-        <mesh position={[0, 0.55, -0.4]} rotation={[-1.1, 0, 0]}><torusGeometry args={[0.18, 0.03, 8, 24]} /><meshStandardMaterial color="#222" /></mesh>
-      </group>
       {/* door, front right */}
       <mesh position={[width / 2 + 0.01, 0.9, -length / 2 + 0.75]}><boxGeometry args={[0.03, 1.4, 0.8]} /><meshStandardMaterial color={C.glass} transparent opacity={0.5} /></mesh>
       {/* wheels */}
@@ -151,12 +149,12 @@ function Bus({ layout, taken, selected, onToggle, restroom, lift, hover, setHove
         </mesh>
       )))}
       {restroom && (
-        <mesh position={[sleeper ? place({ id: 'cr', x: cols - 1, row: rows - 1, deck: 0, berth: true })[0] : (width / 2 - 0.4), 0.9, length / 2 - (sleeper ? pitch / 2 + 0.3 : 0.4)]}>
+        <mesh position={[sleeper ? place({ id: 'cr', x: cols - 1, row: rows - 1, deck: 0, berth: true, kind: 'unavailable' })[0] : (width / 2 - 0.4), 0.9, length / 2 - (sleeper ? pitch / 2 + 0.3 : 0.4)]}>
           <boxGeometry args={[sleeper ? 0.7 : 0.7, 1.4, sleeper ? 1.6 : 0.7]} /><meshStandardMaterial color="#d9ddd3" transparent opacity={0.8} />
         </mesh>
       )}
       {restroom && (
-        <Tag text="CR" scale={0.5} position={[sleeper ? place({ id: 'cr', x: cols - 1, row: rows - 1, deck: 0, berth: true })[0] : (width / 2 - 0.4), 1.9, length / 2 - (sleeper ? pitch / 2 + 0.3 : 0.4)]} />
+        <Tag text="CR" scale={0.5} position={[sleeper ? place({ id: 'cr', x: cols - 1, row: rows - 1, deck: 0, berth: true, kind: 'unavailable' })[0] : (width / 2 - 0.4), 1.9, length / 2 - (sleeper ? pitch / 2 + 0.3 : 0.4)]} />
       )}
       <Tag text="FRONT" scale={0.7} position={[0, height + 0.5, -length / 2]} />
       {layout.filter((s) => s.deck === 0).map(render)}

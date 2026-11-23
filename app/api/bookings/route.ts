@@ -1,77 +1,91 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { BUS_CLASSES, isBookable, price, time12 } from '@/lib/catalog';
-import { tripById } from '@/lib/routes';
 import { currentUser } from '@/lib/auth';
+import { attachCheckout, cancelHold, hold, SeatsTaken } from '@/lib/bookings';
+import { bookable } from '@/lib/catalog';
 import { q } from '@/lib/db';
-import { attachCheckout, cancelHold, hold, SeatsTaken, takenSeats } from '@/lib/bookings';
+import { PASSENGER_KINDS, seatName } from '@/lib/layouts';
 import { createCheckout, paymentsConfigured } from '@/lib/paymongo';
+import { seatPrice, segmentFare } from '@/lib/pricing';
 import { allow, clientIp } from '@/lib/ratelimit';
+import { isCategory, PASSENGER_CATEGORIES, seatAllowed, type PassengerCategory } from '@/lib/seatpolicy';
+import { availability, discountsOf, legOf, stopTime, tripById } from '@/lib/trips';
 
 const Body = z.object({
-  tripId: z.string().max(40),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  pickup: z.string().max(60),
-  dropoff: z.string().max(60),
-  seats: z.array(z.string().max(5)).min(1).max(6),
+  tripId: z.string().uuid(),
+  pickup: z.string().max(80),
+  dropoff: z.string().max(80),
   name: z.string().trim().min(2).max(80),
   email: z.string().trim().email().max(120),
   phone: z.string().trim().regex(/^(\+63|0)9\d{9}$/, 'Use a PH mobile number, e.g. 09171234567'),
-  passengers: z.array(z.object({ seat: z.string().max(5), name: z.string().trim().max(80), profileId: z.string().uuid().optional() })).max(6).default([]),
+  seats: z.array(z.object({
+    seat: z.string().max(5), name: z.string().trim().max(80).default(''), category: z.string(), profileId: z.string().uuid().optional(),
+    idType: z.string().trim().max(40).default(''), idLast4: z.string().trim().max(4).default(''),
+  })).min(1).max(6),
 });
 
 const bad = (error: string, status = 400) => NextResponse.json({ error }, { status });
 
 export async function POST(req: NextRequest) {
-  // Same-origin only: the session cookie must not let another site start bookings.
   const origin = req.headers.get('origin');
   if (origin && origin !== new URL(process.env.PUBLIC_BASE_URL ?? req.nextUrl.origin).origin) return bad('Bad origin.', 403);
   if (!allow('book:' + clientIp(req), 10, 60_000)) return bad('Too many attempts. Wait a minute and try again.', 429);
-  if (!paymentsConfigured()) return bad('Online payment is not available yet. Book at a terminal booth.', 503);
+  if (!paymentsConfigured()) return bad('Online payment is not available yet.', 503);
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return bad(parsed.error.issues[0]?.message ?? 'Check the form and try again.');
   const b = parsed.data;
 
   const trip = await tripById(b.tripId);
-  if (!trip || !trip.active) return bad('That trip is not running.', 404);
-  if (!isBookable(trip, b.date)) return bad('Online booking for this departure is closed.');
-  const pickup = trip.pickups.find((p) => p.station === b.pickup);
-  if (!pickup || !trip.dropoffs.includes(b.dropoff)) return bad('Choose a pick-up and drop-off on this route.');
-  const cls = BUS_CLASSES[trip.busClass];
-  const seats = [...new Set(b.seats)];
-  if (seats.length !== b.seats.length || !seats.every((s) => cls.layout.some((l) => l.id === s))) return bad('Choose seats from the seat plan.');
+  if (!trip || trip.status === 'cancelled') return bad('That trip is not running.', 404);
+  const leg = legOf(trip, b.pickup, b.dropoff);
+  if (!leg) return bad('Choose a pick-up and a later drop-off on this trip.');
+  if (!bookable(stopTime(trip, leg.i) ?? new Date(trip.departs_at)) || trip.status !== 'scheduled') return bad('Online booking for this departure is closed.');
 
   const user = await currentUser();
-  // Name per seat: a saved profile (owned by this user) or a typed name; the lead passenger fills any gap.
-  const profiles = user ? await q<{ id: string; full_name: string }>('select id, full_name from passengers where user_id = $1', [user.id]) : [];
-  const passengers = seats.map((seat) => {
-    const given = b.passengers.find((x) => x.seat === seat);
-    const profile = given?.profileId ? profiles.find((x) => x.id === given.profileId) : undefined;
-    return { seat, name: profile?.full_name ?? (given?.name || b.name) };
-  });
-  const p = price(trip.fare, seats.length);
+  const profiles = user ? await q<{ id: string; full_name: string; category: PassengerCategory }>('select id, full_name, category from passengers where user_id = $1', [user.id]) : [];
+  const { released } = await availability(trip);
+  const segment = segmentFare(trip, leg.i, leg.j);
+  if (segment <= 0) return bad('This route has no fare between those stops.');
+  const discounts = discountsOf(trip);
+
+  const seen = new Set<string>();
+  const passengers = [];
+  for (const s of b.seats) {
+    const seat = trip.seats.find((x) => x.id === s.seat);
+    if (!seat || !PASSENGER_KINDS.includes(seat.kind) || seen.has(s.seat)) return bad('Choose seats from the seat plan.');
+    seen.add(s.seat);
+    const profile = s.profileId ? profiles.find((x) => x.id === s.profileId) : undefined;
+    const category = (profile?.category ?? s.category) as PassengerCategory;
+    if (!isCategory(category)) return bad('Choose a passenger type.');
+    if (!seatAllowed(seat.kind, category, released.includes(seat.id))) return bad(`${seatName(seat.id)} is reserved for eligible passengers. Pick another seat or change the passenger type.`);
+    if (['senior', 'pwd', 'student'].includes(category) && (!s.idType || !/^[A-Z0-9]{4}$/i.test(s.idLast4)))
+      return bad(`${PASSENGER_CATEGORIES[category]} fares need the ID type and its last 4 characters for ${seatName(seat.id)}.`);
+    const price = seatPrice(segment, discounts, category);
+    passengers.push({ seat: seat.id, name: profile?.full_name ?? (s.name || b.name), category, fare: price.fare, fee: price.fee, id_type: s.idType, id_last4: s.idLast4.toUpperCase() });
+  }
+  const fare = passengers.reduce((a, p) => a + p.fare, 0), fee = passengers.reduce((a, p) => a + p.fee, 0);
+
   let booking;
   try {
     booking = await hold({
-      trip_id: trip.id, travel_date: b.date, pickup: b.pickup, dropoff: b.dropoff, seats,
-      name: b.name, email: b.email, phone: b.phone, fare_centavos: p.fare, fee_centavos: p.fee, total_centavos: p.total,
-      user_id: user?.id ?? null, passengers,
+      org_id: trip.org_id, trip_uuid: trip.id, trip_id: trip.code, travel_date: trip.service_date, pickup: b.pickup, dropoff: b.dropoff,
+      seats: passengers.map((p) => p.seat), name: b.name, email: b.email, phone: b.phone,
+      fare_centavos: fare, fee_centavos: fee, total_centavos: fare + fee, user_id: user?.id ?? null, passengers,
     });
   } catch (e) {
-    if (e instanceof SeatsTaken) return NextResponse.json({ error: 'Someone just took one of those seats. Pick again.', taken: await takenSeats(trip.id, b.date) }, { status: 409 });
+    if (e instanceof SeatsTaken) return NextResponse.json({ error: 'Someone just took one of those seats. Pick again.', taken: (await availability(trip)).taken }, { status: 409 });
     throw e;
   }
 
   const base = process.env.PUBLIC_BASE_URL ?? req.nextUrl.origin;
   try {
-    const perSeat = price(trip.fare, 1);
     const checkout = await createCheckout({
       ref: booking.ref,
-      description: `${cls.name} trip ${trip.code}, ${b.pickup} ${time12(pickup.time)} to ${b.dropoff}, ${b.date}, seat ${seats.join(', ')}`,
+      description: `${trip.org_name}: ${trip.class_name} ${trip.code}, ${b.pickup} to ${b.dropoff}, ${trip.service_date}, ${passengers.map((p) => seatName(p.seat)).join(', ')}`,
       lineItems: [
-        { name: `Fare, ${b.pickup} to ${b.dropoff} (${cls.name})`, amount: perSeat.fare, quantity: seats.length },
-        { name: 'Online convenience fee', amount: perSeat.fee, quantity: seats.length },
+        ...passengers.map((p) => ({ name: `${seatName(p.seat)}, ${PASSENGER_CATEGORIES[p.category]} fare`, amount: p.fare, quantity: 1 })),
+        { name: 'Online convenience fee', amount: fee, quantity: 1 },
       ],
       billing: { name: b.name, email: b.email, phone: b.phone },
       successUrl: `${base}/booking/${booking.ref}`,

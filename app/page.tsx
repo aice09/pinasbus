@@ -1,57 +1,76 @@
 import Link from 'next/link';
-import { addDays, BOOKING_WINDOW_DAYS, BUS_CLASSES, hasRestroom, manilaNow, network, peso } from '@/lib/catalog';
-import { activeTrips } from '@/lib/routes';
+import { addDays, BOOKING_WINDOW_DAYS, manilaNow, peso } from '@/lib/catalog';
+import { q } from '@/lib/db';
+import type { Stop } from '@/lib/trips';
+import { network } from '@/lib/trips';
 import { SearchForm } from '@/components/SearchForm';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const trips = await activeTrips();
   const { date: today } = manilaNow();
-  const { pairs } = network(trips);
+  const [pairs, routes, operators] = await Promise.all([
+    network(),
+    q<{ stops: Stop[]; org: string; verified: boolean }>(
+      `select r.stops, o.name org, not (r.data_sources @> '[{"verified": false}]') verified from routes r join organizations o on o.id = r.org_id
+        where r.active and o.status = 'active'`),
+    q<{ slug: string; name: string; routes: number; schedules: number; is_demo: boolean }>(
+      `select o.slug, o.name, o.is_demo, (select count(*) from routes r where r.org_id = o.id and r.active)::int routes,
+              (select count(*) from schedules s where s.org_id = o.id and s.active)::int schedules
+         from organizations o where o.kind = 'bus_operator' and o.status = 'active' order by o.name`),
+  ]);
 
-  // Cheapest southbound fare per destination, with the bus classes serving it.
-  const rows = new Map<string, { min: number; classes: Set<string>; trips: number }>();
-  for (const t of trips.filter((t) => t.dir === 'south')) for (const d of t.dropoffs) {
-    const r = rows.get(d) ?? { min: Infinity, classes: new Set<string>(), trips: 0 };
-    r.min = Math.min(r.min, t.fare); r.classes.add(BUS_CLASSES[t.busClass].name); r.trips++;
-    rows.set(d, r);
-  }
-  const fares = [...rows].sort((a, b) => a[1].min - b[1].min);
+  // Cheapest full-fare segment to each destination, with the companies serving it.
+  const dest = new Map<string, { min: number; orgs: Set<string>; indicative: boolean }>();
+  for (const r of routes) r.stops.forEach((a, i) => {
+    if (!a.boarding) return;
+    for (const b of r.stops.slice(i + 1)) {
+      if (!b.alighting) continue;
+      const fare = b.fare - a.fare, d = dest.get(b.name) ?? { min: Infinity, orgs: new Set(), indicative: false };
+      if (fare > 0 && fare < d.min) { d.min = fare; d.indicative = !r.verified; }
+      d.orgs.add(r.org); dest.set(b.name, d);
+    }
+  });
+  const fares = [...dest].filter(([, d]) => d.min < Infinity).sort((a, b) => a[1].min - b[1].min);
 
   return (
     <main>
       <section className="hero">
-        <SearchForm pairs={pairs} today={today} maxDate={addDays(today, BOOKING_WINDOW_DAYS)} initial={{ from: 'EDSA Cubao', to: pairs['EDSA Cubao']?.includes('Naga CBD') ? 'Naga CBD' : '' }} />
+        <SearchForm pairs={pairs} today={today} maxDate={addDays(today, BOOKING_WINDOW_DAYS)} initial={{ from: pairs['EDSA Cubao'] ? 'EDSA Cubao' : '', to: pairs['EDSA Cubao']?.includes('Naga CBD') ? 'Naga CBD' : '' }} />
         <div className="hero-copy">
-          <h1>Your seat to Bicol, booked in a minute.</h1>
-          <p>{trips.length} daily departures between Metro Manila and Camarines Sur, Albay, Sorsogon, Catanduanes and Masbate, from lie-flat sleeper berths to non-aircon coaches. The From and To lists only show routes a bus actually runs.</p>
+          <h1>Every bus home, in one place.</h1>
+          <p>Compare {operators.length} bus companies and {operators.reduce((a, o) => a + o.schedules, 0)} daily departures, pick your exact seat, and pay with GCash, Maya or card. Senior citizen and PWD seats and discounts are built in.</p>
         </div>
       </section>
 
-      <section className="section" aria-labelledby="how-h">
-        <h2 id="how-h">How booking works</h2>
-        <ol className="steps">
-          <li><h3>Find your trip</h3><p>Choose where you board and where you get off. Every departure shows its bus class, restroom and seats left.</p></li>
-          <li><h3>Pick your seat</h3><p>Turn the 3D bus around and tap a seat. On sleepers, lift the upper deck to see the lower berths.</p></li>
-          <li><h3>Pay and board</h3><p>Pay with GCash, Maya or card. Your ticket page and reference number are all you show at boarding.</p></li>
-        </ol>
+      <section className="section" aria-labelledby="ops-h">
+        <h2 id="ops-h">Bus companies</h2>
+        <ul className="opgrid">
+          {operators.map((o) => (
+            <li key={o.slug}>
+              <Link href={`/operators/${o.slug}`} className="opcard">
+                <strong>{o.name}</strong>
+                <span>{o.routes} routes, {o.schedules} daily departures</span>
+                {o.is_demo && <span className="chip plain">Not affiliated, public data</span>}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="section" id="fares" aria-labelledby="fares-h">
-        <h2 id="fares-h">Fares from Metro Manila</h2>
-        <p>Lowest fare per seat, before the online convenience fee.</p>
+        <h2 id="fares-h">Lowest fares by destination</h2>
+        <p>Regular fare per seat before discounts and the online convenience fee.</p>
         <div className="table-wrap">
           <table className="fares">
-            <thead><tr><th scope="col">Destination</th><th scope="col">From</th><th scope="col">Bus classes</th><th scope="col">Daily trips</th><th scope="col"><span className="sr-only">Book</span></th></tr></thead>
+            <thead><tr><th scope="col">Destination</th><th scope="col">From</th><th scope="col">Companies</th><th scope="col"><span className="sr-only">Book</span></th></tr></thead>
             <tbody>
-              {fares.map(([dest, r]) => (
-                <tr key={dest}>
-                  <th scope="row">{dest}</th>
-                  <td className="num">{peso(r.min * 100)}</td>
-                  <td>{[...r.classes].join(', ')}</td>
-                  <td className="num">{r.trips}</td>
-                  <td><Link href={`/trips?to=${encodeURIComponent(dest)}&date=${today}`}>See trips</Link></td>
+              {fares.slice(0, 20).map(([name, d]) => (
+                <tr key={name}>
+                  <th scope="row">{name}</th>
+                  <td className="num">{peso(d.min * 100)}{d.indicative && <span className="chip no">indicative</span>}</td>
+                  <td>{[...d.orgs].join(', ')}</td>
+                  <td><Link href={`/trips?to=${encodeURIComponent(name)}&date=${today}`}>See trips</Link></td>
                 </tr>
               ))}
             </tbody>
@@ -59,37 +78,12 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="section split" aria-labelledby="classes-h">
+      <section className="section band" aria-labelledby="ops2-h">
         <div>
-          <h2 id="classes-h">Six ways to ride</h2>
-          <p>From the Ultimate Sleeper&apos;s curtained berths to the open-window Non-Aircon, every class is shown with its restroom and seat layout before you pay.</p>
-          <p><Link className="btn quiet" href="/fleet">Compare our buses</Link></p>
+          <h2 id="ops2-h">Run a bus company?</h2>
+          <p>PINASBUS gives each company its own workspace: fleet and seat layouts, routes and schedules, dispatch, terminal sales, manifests and reports, with fixed roles for every crew member.</p>
         </div>
-        <ul className="classlist">
-          {Object.values(BUS_CLASSES).map((c) => (
-            <li key={c.id}><strong>{c.name}</strong><span>{c.seats} {c.layout[0].berth ? 'berths, upper and lower' : 'seats'}, {hasRestroom(c) ? 'with restroom (CR)' : 'no restroom'}</span></li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="section band" aria-labelledby="padala-h">
-        <div>
-          <h2 id="padala-h">Send a package on tonight&apos;s bus</h2>
-          <p>BikolBus Padala carries boxes and documents between our terminals on the same buses you ride. Book and pay online, drop it off, and the recipient picks it up at the destination terminal. Track every step with your reference number.</p>
-        </div>
-        <p className="band-actions"><Link className="btn" href="/padala">Send a package</Link><Link className="btn quiet" href="/padala/track">Track a package</Link></p>
-      </section>
-
-      <section className="section" id="rules" aria-labelledby="rules-h">
-        <h2 id="rules-h">Before you travel</h2>
-        <div className="rules">
-          <div><h3>Baggage</h3><p>Each ticket includes up to 20 kg of baggage. Infant tickets have no baggage allowance.</p></div>
-          <div><h3>Discounts</h3><p>Student, senior citizen and PWD discounts are given only at terminal ticket booths, with a valid ID.</p></div>
-          <div><h3>Pregnancy</h3><p>From 7 months you can&apos;t travel. Up to 6 months you need an OB-Gynecologist &quot;fit to travel&quot; certificate.</p></div>
-          <div><h3>Pets and infants</h3><p>One small caged pet or one infant (under 3 ft) per adult. A pet needs its own seat, anti-rabies proof and a vet travel permit.</p></div>
-          <div><h3>Seat holds</h3><p>Your seats are held for 15 minutes while you pay. If payment doesn&apos;t finish, they go back on sale.</p></div>
-          <div><h3>Boarding</h3><p>Be at your pick-up point 30 minutes early and show the ticket page or your reference number with a valid ID.</p></div>
-        </div>
+        <p className="band-actions"><Link className="btn" href="/contact?subject=Operator%20onboarding">Talk to us</Link><Link className="btn quiet" href="/about">How it works</Link></p>
       </section>
     </main>
   );

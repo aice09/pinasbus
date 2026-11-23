@@ -1,0 +1,11 @@
+{{- if .Values.demo.accounts }}
+{{- $existing := lookup "v1" "Secret" .Release.Namespace (printf "%s-demo" .Release.Name) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-demo
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+type: Opaque
+data:
+  password: {{ if $existing }}{{ index $existing.data "password" }}{{ else }}{{ randAlphaNum 20 | b64enc }}{{ end }}
+{{- end }}

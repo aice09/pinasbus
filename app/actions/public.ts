@@ -3,12 +3,11 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
-import { connects } from '@/lib/catalog';
 import { q } from '@/lib/db';
 import { createShipment, getRates, padalaFee } from '@/lib/padala';
 import { createCheckout, paymentsConfigured } from '@/lib/paymongo';
 import { allow } from '@/lib/ratelimit';
-import { activeTrips } from '@/lib/routes';
+import { connects, network } from '@/lib/trips';
 import type { ActionResult } from '@/components/ActionForm';
 
 const ip = async () => (await headers()).get('cf-connecting-ip') ?? 'unknown';
@@ -51,7 +50,7 @@ export async function createPadala(_: ActionResult, f: FormData): Promise<Action
   const s = p.data;
   const rates = await getRates();
   if (s.weight_kg > rates.maxKg) return { error: `Packages up to ${rates.maxKg} kg only. Split heavier items into several shipments.` };
-  if (!connects(await activeTrips(), s.from, s.to)) return { error: 'No bus runs between those terminals. Choose another pair.' };
+  if (!connects(await network(), s.from, s.to)) return { error: 'No bus runs between those terminals. Choose another pair.' };
 
   const fee = padalaFee(rates, s.weight_kg, Math.round(s.declared_value * 100));
   const user = await currentUser();

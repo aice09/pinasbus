@@ -17,7 +17,8 @@ export default async function AccountLayout({ children }: { children: React.Reac
           <Link href="/account/padala">Padala</Link>
           <Link href="/account/passengers">Saved passengers</Link>
           <Link href="/account/settings">Settings</Link>
-          {u.role === 'admin' && <Link href="/admin">Admin dashboard</Link>}
+          {u.platform_role === 'platform_admin' && <Link href="/platform">Platform</Link>}
+          {u.memberships.filter((m) => m.org_kind === 'bus_operator').map((m) => <Link key={m.org_id} href={`/ops/${m.org_slug}`}>{m.org_name.split(' (')[0]}</Link>)}
         </nav>
         <form action={signOut}><button className="linkbtn" type="submit">Sign out</button></form>
       </aside>

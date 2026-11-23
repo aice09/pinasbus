@@ -1,10 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { tripById } from '@/lib/routes';
-import { takenSeats } from '@/lib/bookings';
+import { availability, tripById } from '@/lib/trips';
 
 export async function GET(req: NextRequest) {
   const trip = await tripById(req.nextUrl.searchParams.get('trip') ?? '');
-  const date = req.nextUrl.searchParams.get('date') ?? '';
-  if (!trip || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return NextResponse.json({ error: 'trip and date are required' }, { status: 400 });
-  return NextResponse.json({ taken: await takenSeats(trip.id, date) }, { headers: { 'cache-control': 'no-store' } });
+  if (!trip) return NextResponse.json({ error: 'unknown trip' }, { status: 404 });
+  const { taken, released } = await availability(trip);
+  return NextResponse.json({ taken, released }, { headers: { 'cache-control': 'no-store' } });
 }

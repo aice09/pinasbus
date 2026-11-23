@@ -1,84 +1,79 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { addDays, BOOKING_WINDOW_DAYS, BUS_CLASSES, hasRestroom, isBookable, manilaNow, matchTrips, network, peso, time12, type Trip } from '@/lib/catalog';
-import { takenCounts } from '@/lib/bookings';
-import { activeTrips } from '@/lib/routes';
+import { addDays, bookable, BOOKING_WINDOW_DAYS, clock, hasCR, isDate, manilaNow, peso } from '@/lib/catalog';
+import { PASSENGER_KINDS } from '@/lib/layouts';
+import { legOf, network, segmentFare, stopTime, takenOn, tripsOn } from '@/lib/trips';
 import { RouteSelects } from '@/components/RouteSelects';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Trips' };
 
-type SP = Promise<{ from?: string; to?: string; date?: string }>;
-
 const fmtDay = (d: string, opts: Intl.DateTimeFormatOptions) => new Date(d + 'T00:00:00+08:00').toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', ...opts });
 
-export default async function Trips({ searchParams }: { searchParams: SP }) {
+export default async function Trips({ searchParams }: { searchParams: Promise<{ from?: string; to?: string; date?: string }> }) {
   const sp = await searchParams;
-  const all = await activeTrips();
-  const { pairs, pickups, dropoffs } = network(all);
+  const pairs = await network();
   const { date: today } = manilaNow();
   const maxDate = addDays(today, BOOKING_WINDOW_DAYS);
-  const date = sp.date && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) && sp.date >= today && sp.date <= maxDate ? sp.date : today;
-  const from = sp.from && pickups.includes(sp.from) ? sp.from : '';
-  const to = sp.to && dropoffs.includes(sp.to) ? sp.to : '';
+  const date = isDate(sp.date) && sp.date >= today && sp.date <= maxDate ? sp.date : today;
+  const from = sp.from && pairs[sp.from] ? sp.from : '';
+  const to = sp.to && Object.values(pairs).some((l) => l.includes(sp.to!)) ? sp.to : '';
 
-  const pickupOf = (t: Trip) => t.pickups.find((p) => p.station === from) ?? t.pickups[0];
-  const trips = matchTrips(all, from, to).sort((a, b) => pickupOf(a).time.localeCompare(pickupOf(b).time));
-  const taken = await takenCounts(trips.map((t) => t.id), date);
+  const all = await tripsOn(date);
+  const found = all.map((t) => ({ t, leg: legOf(t, from || undefined, to || undefined) })).filter((x) => x.leg && x.t.status !== 'cancelled')
+    .map(({ t, leg }) => ({ t, leg: leg!, boards: stopTime(t, leg!.i) ?? new Date(t.departs_at) }))
+    .sort((a, b) => a.boards.getTime() - b.boards.getTime());
+  const taken = await takenOn(found.map((x) => x.t.id));
 
-  const q = (d: string) => `/trips?${new URLSearchParams({ ...(from && { from }), ...(to && { to }), date: d })}`;
+  const href = (d: string) => `/trips?${new URLSearchParams({ ...(from && { from }), ...(to && { to }), date: d })}`;
   const start = date > today ? (addDays(date, -2) < today ? today : addDays(date, -2)) : today;
   const days = Array.from({ length: 9 }, (_, i) => addDays(start, i)).filter((d) => d <= maxDate);
 
   return (
     <main>
       <h1 className="page-h">{from || 'Any terminal'} to {to || 'anywhere'}</h1>
-
       <form className="filters" action="/trips" method="get">
         <RouteSelects pairs={pairs} from={from} to={to} />
         <input type="hidden" name="date" value={date} />
         <button className="btn quiet" type="submit">Update</button>
       </form>
-
       <nav className="dates" aria-label="Travel date">
         {days.map((d) => (
-          <Link key={d} href={q(d)} aria-current={d === date ? 'date' : undefined}>
-            <small>{d === today ? 'Today' : fmtDay(d, { weekday: 'short' })}</small>
-            <strong>{fmtDay(d, { day: 'numeric' })}</strong>
-            <small>{fmtDay(d, { month: 'short' })}</small>
+          <Link key={d} href={href(d)} aria-current={d === date ? 'date' : undefined}>
+            <small>{d === today ? 'Today' : fmtDay(d, { weekday: 'short' })}</small><strong>{fmtDay(d, { day: 'numeric' })}</strong><small>{fmtDay(d, { month: 'short' })}</small>
           </Link>
         ))}
       </nav>
-
-      {trips.length === 0 ? (
-        <div className="empty">
-          <h2>No direct trips on this route</h2>
-          <p>Try a nearby terminal, or <Link href={`/trips?date=${date}`}>see every trip on {fmtDay(date, { month: 'long', day: 'numeric' })}</Link>.</p>
-        </div>
+      {found.length === 0 ? (
+        <div className="empty"><h2>No trips on this route that day</h2><p>Try another date or a nearby terminal, or <Link href={`/trips?date=${date}`}>see every trip that day</Link>.</p></div>
       ) : (
         <ul className="trips">
-          {trips.map((t) => {
-            const c = BUS_CLASSES[t.busClass];
-            const left = c.seats - (taken.get(t.id) ?? 0);
-            const open = isBookable(t, date) && left > 0;
-            const p = pickupOf(t);
-            const href = `/trips/${t.id}?${new URLSearchParams({ date, from: p.station, ...(to && { to }) })}`;
+          {found.map(({ t, leg, boards }) => {
+            const seats = t.seats.filter((s) => PASSENGER_KINDS.includes(s.kind)).length;
+            const left = seats - (taken.get(t.id) ?? 0);
+            const open = bookable(boards) && left > 0 && t.status === 'scheduled';
+            const indicative = t.sources.some((s) => !s.verified);
+            const sleeper = t.seats.some((s) => s.berth);
             return (
               <li key={t.id} className={'trip' + (open ? '' : ' closed')}>
-                <div className="trip-time">{time12(p.time)}<small>{p.station}</small></div>
+                <div className="trip-time">{clock(boards)}<small>{t.stops[leg.i].name}</small></div>
                 <div className="trip-main">
-                  <h3>{t.pickups.map((x) => x.station).join(', ')} to {t.dropoffs.join(', ')}</h3>
+                  <p className="trip-org">{t.org_name}</p>
+                  <h3>{t.stops[leg.i].name} to {t.stops[leg.j].name}</h3>
                   <p className="meta">
-                    <span className="chip">{c.name}</span>
-                    <span className={'chip ' + (hasRestroom(c) ? 'yes' : 'no')}>{hasRestroom(c) ? 'With CR' : 'No CR'}</span>
-                    {c.layout[0].berth && <span className="chip">Upper and lower berths</span>}
+                    <span className="chip">{t.class_name}</span>
+                    <span className={'chip ' + (hasCR(t.amenities) ? 'yes' : 'no')}>{hasCR(t.amenities) ? 'With CR' : 'No CR'}</span>
+                    {sleeper && <span className="chip">Upper and lower berths</span>}
+                    {t.mode === 'road_ferry' && <span className="chip plain">Includes a ferry</span>}
+                    {indicative && <span className="chip no">Indicative time and fare</span>}
                     Trip {t.code}
                   </p>
                 </div>
                 <div className="trip-buy">
-                  <span className="fare">{peso(t.fare * 100)}</span>
-                  <span className={'left' + (left <= 5 ? ' low' : '')}>{left > 0 ? `${left} of ${c.seats} ${c.layout[0].berth ? 'berths' : 'seats'} left` : 'Full'}</span>
-                  {open ? <Link className="btn" href={href}>Choose seats</Link> : <span className="note">{left > 0 ? 'Booking closed' : 'Sold out'}</span>}
+                  <span className="fare">{peso(segmentFare(t, leg.i, leg.j))}</span>
+                  <span className={'left' + (left <= 5 ? ' low' : '')}>{left > 0 ? `${left} of ${seats} left` : 'Full'}</span>
+                  {open ? <Link className="btn" href={`/trips/${t.id}?${new URLSearchParams({ from: t.stops[leg.i].name, to: t.stops[leg.j].name })}`}>Choose seats</Link>
+                    : <span className="note">{left > 0 ? 'Booking closed' : 'Sold out'}</span>}
                 </div>
               </li>
             );

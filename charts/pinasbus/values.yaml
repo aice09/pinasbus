@@ -1,0 +1,65 @@
+image:
+  repository: ghcr.io/aice09/pinasbus
+  tag: ""            # defaults to the chart appVersion; CI publishes sha-<short>, main and semver tags
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+replicaCount: 2
+
+# Public URL used in PayMongo success/cancel redirects.
+host: pinasbus.phlopentech.org
+# More names served by the same app (old links, the PayMongo webhook URL). Each gets a Mapping, never a Host.
+extraHosts: []
+publicBaseUrl: ""    # defaults to https://<host>
+
+# Emissary Mapping only. Never add an Emissary Host for a name a wildcard Host already covers.
+mapping:
+  enabled: true
+
+payments:
+  # Secret with PAYMONGO_SECRET_KEY and PAYMONGO_WEBHOOK_SECRET. Without it the site runs but online payment is off.
+  existingSecret: bikolbus-paymongo
+  methods: "card,gcash,paymaya"
+
+database:
+  # cnpg: the chart creates a CloudNativePG Cluster; the app reads the uri from <release>-db-app.
+  cnpg:
+    enabled: true
+    instances: 1
+    imageName: ghcr.io/cloudnative-pg/postgresql:17.12-standard-trixie
+    size: 2Gi
+    storageClass: ceph-rbd-infra-k8s
+  # Or point at your own database: Secret with key DATABASE_URL (used when cnpg.enabled is false).
+  existingSecret: ""
+
+# Comma-separated emails that become PINASBUS platform administrators when they sign in. Keep real addresses
+# out of git: pass them with --set platformAdminEmails=... or an override file.
+platformAdminEmails: ""
+adminEmails: ""   # older name, still honoured
+
+demo:
+  # Seed the demo companies' staff and passenger accounts with one generated password (Secret <release>-demo,
+  # key password). Every demo account must change it at first sign-in.
+  accounts: true
+  # The demo platform-admin account stays disabled unless you turn this on.
+  platformAdmin: false
+
+metrics:
+  # Bearer token Prometheus uses to scrape /api/metrics; generated once and kept across upgrades.
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+  grafanaDashboard:
+    enabled: true
+    namespace: prometheus      # where the Grafana sidecar looks for ConfigMaps labelled grafana_dashboard=1
+    folder: BikolBus
+
+networkPolicy:
+  enabled: true
+  ingressNamespace: emissary
+  cnpgNamespace: cnpg-system
+  prometheusNamespace: prometheus
+
+resources:
+  requests: { cpu: 50m, memory: 160Mi }
+  limits: { cpu: "1", memory: 512Mi }

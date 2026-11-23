@@ -14,7 +14,7 @@ for r in d:
     base=re.sub(r'^(r3/|)','',r['file'][:-5]); dest=fmap.get(base,base)
     south=a in MNL
     key=(code,'S' if south else 'N')
-    t=trips.setdefault(key,dict(code=code,dir='south' if south else 'north',bus=r['bus'].split(' (')[0].strip(),fare=int(r['fare']),pickups={},dropoffs=set()))
+    t=trips.setdefault(key,dict(operator=r['title'].split(' - Trip')[0].strip(),code=code,dir='south' if south else 'north',bus=r['bus'].split(' (')[0].strip(),fare=int(r['fare']),pickups={},dropoffs=set()))
     if south:
         t['pickups'][a]=t24(r['time']); t['dropoffs'].add(dest)
     else:
@@ -27,4 +27,4 @@ for (c,dr),t in sorted(trips.items()):
     t['id']=(c+'-'+dr).lower()
     out.append(t)
 json.dump(out,open(sys.argv[2],'w'),indent=1,ensure_ascii=False)
-for t in out: print(t['id'],t['bus'],t['fare'],[p['station']+'@'+p['time'] for p in t['pickups']],'->',t['dropoffs'])
+import collections; print(collections.Counter(t['operator'] for t in out))

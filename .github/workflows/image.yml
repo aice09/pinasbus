@@ -38,4 +38,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Lint the Helm chart
-        run: helm lint charts/bikolbus && helm template t charts/bikolbus > /dev/null
+        run: helm lint charts/pinasbus && helm template t charts/pinasbus > /dev/null

@@ -1,33 +1,30 @@
 import Link from 'next/link';
-import { BUS_CLASSES, peso, time12, type Trip } from '@/lib/catalog';
+import { peso } from '@/lib/catalog';
 import type { Booking } from '@/lib/bookings';
+import { seatName } from '@/lib/layouts';
 import { STATUS_TEXT, type Shipment } from '@/lib/padala';
 
 const day = (d: string) => new Date(d + 'T00:00:00+08:00').toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 const BOOKING_STATUS: Record<Booking['status'], string> = { paid: 'Paid', pending: 'Waiting for payment', expired: 'Expired', needs_refund: 'Refund due', refunded: 'Refunded' };
 
 /** Trip history rows with a "Book again" link that keeps the route and asks for a new date. */
-export function BookingList({ items, trips }: { items: Booking[]; trips: Trip[] }) {
-  if (!items.length) return <div className="empty"><p>No trips yet.</p><p><Link className="btn" href="/trips">Find a trip</Link></p></div>;
+export function BookingList({ items, orgs = {} }: { items: Booking[]; orgs?: Record<string, string> }) {
+  if (!items.length) return <div className="empty"><p>No trips here.</p><p><Link className="btn" href="/trips">Find a trip</Link></p></div>;
   return (
     <ul className="cards">
-      {items.map((b) => {
-        const t = trips.find((x) => x.id === b.trip_id);
-        const pick = t?.pickups.find((p) => p.station === b.pickup);
-        return (
-          <li key={b.id} className="card">
-            <div className="card-main">
-              <h3>{b.pickup} to {b.dropoff}</h3>
-              <p className="meta">{day(b.travel_date)}{pick && `, ${time12(pick.time)}`}. {t ? `${BUS_CLASSES[t.busClass].name}, trip ${t.code}` : b.trip_id}. {b.seats.join(', ')}</p>
-              <p className="meta"><span className={`status ${b.status === 'refunded' ? 'expired' : b.status}`}>{BOOKING_STATUS[b.status]}</span> <span className="mono">{b.ref}</span> {peso(b.total_centavos)}</p>
-            </div>
-            <div className="card-actions">
-              <Link className="btn quiet small" href={`/booking/${b.ref}`}>Ticket</Link>
-              <Link className="btn small" href={`/trips?${new URLSearchParams({ from: b.pickup, to: b.dropoff })}`}>Book again</Link>
-            </div>
-          </li>
-        );
-      })}
+      {items.map((b) => (
+        <li key={b.id} className="card">
+          <div className="card-main">
+            <h3>{b.pickup} to {b.dropoff}</h3>
+            <p className="meta">{day(b.travel_date)}. {b.org_id && orgs[b.org_id] ? `${orgs[b.org_id]}, ` : ''}trip {b.trip_id}. {b.seats.map(seatName).join(', ')}</p>
+            <p className="meta"><span className={`status ${b.status === 'refunded' ? 'expired' : b.status}`}>{BOOKING_STATUS[b.status]}</span> <span className="mono">{b.ref}</span> {peso(b.total_centavos)}</p>
+          </div>
+          <div className="card-actions">
+            <Link className="btn quiet small" href={`/booking/${b.ref}`}>Ticket</Link>
+            <Link className="btn small" href={`/trips?${new URLSearchParams({ from: b.pickup, to: b.dropoff })}`}>Book again</Link>
+          </div>
+        </li>
+      ))}
     </ul>
   );
 }

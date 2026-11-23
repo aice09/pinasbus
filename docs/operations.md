@@ -1,23 +1,25 @@
-# BikolBus operations runbook
+# PINASBUS operations runbook
 
-For whoever deploys and runs BikolBus on Kubernetes.
+For whoever deploys and runs PINASBUS on Kubernetes. The namespace, Helm release and database keep their original name, `bikolbus`.
 
 ## Pieces
 
 | Piece | Where |
 |---|---|
-| App | Deployment `bikolbus` (2 replicas), image `ghcr.io/aice09/bikolbus:sha-<short>` built by GitHub Actions on every push to `main` |
+| App | Deployment `bikolbus` (2 replicas), image `ghcr.io/aice09/pinasbus:sha-<short>` built by GitHub Actions on every push to `main` |
 | Database | CloudNativePG Cluster `bikolbus-db` (kept on `helm uninstall`); the app reads `uri` from Secret `bikolbus-db-app`. Schema migrations run automatically at startup (`lib/db.ts`, append-only list, advisory-locked) |
-| Public URL | Emissary `Mapping` for `host`, served by the cluster's wildcard `Host`. Never add a `Host` for a name the wildcard covers |
+| Public URL | Emissary `Mapping` per hostname, served by the cluster's wildcard `Host`. Never add a `Host` for a name the wildcard covers |
 | Payments | Secret `bikolbus-paymongo` (`PAYMONGO_SECRET_KEY`, `PAYMONGO_WEBHOOK_SECRET`) |
-| Metrics | `/api/metrics` behind a bearer token (Secret `bikolbus-metrics`, generated once); `ServiceMonitor bikolbus`; Grafana dashboard ConfigMap `bikolbus-grafana-dashboard` in namespace `prometheus` (folder BikolBus) |
+| Demo accounts | Secret `bikolbus-demo` (generated once); see [test-accounts.md](test-accounts.md). `demo.accounts=false` stops seeding them |
+| Hostnames | `host` (pinasbus.phlopentech.org) plus `extraHosts` (bikolbus.phlopentech.org keeps old links and the PayMongo webhook working) |
+| Metrics | `/api/metrics` behind a bearer token (Secret `bikolbus-metrics`, generated once); `ServiceMonitor bikolbus`; Grafana dashboard ConfigMap `bikolbus-grafana-dashboard` in namespace `prometheus` (folder PINASBUS) |
 
 ## Health check
 
 | Check | Command | Expected |
 |---|---|---|
 | Pods | `kubectl -n bikolbus get pods` | 2 × `bikolbus-…` and `bikolbus-db-1` Running |
-| App + DB | `curl -s https://bikolbus.phlopentech.org/api/health` | `{"status":"ok"}` |
+| App + DB | `curl -s https://pinasbus.phlopentech.org/api/health` | `{"status":"ok"}` |
 | Payments on | open any trip's seat page | a **Pay** button, not "Online payment isn't switched on" |
 | Scrape | Prometheus → Status → Targets → `serviceMonitor/bikolbus/bikolbus` | UP |
 | Webhook | Emissary access log: `grep paymongo/webhook` | `200` (a `401` means the webhook secret is wrong, see below) |
@@ -27,11 +29,12 @@ For whoever deploys and runs BikolBus on Kubernetes.
 ```bash
 # after CI is green for the commit
 SHA=sha-$(git rev-parse --short=7 HEAD)
-helm upgrade --install bikolbus charts/bikolbus -n bikolbus --create-namespace \
-  --set image.tag=$SHA --set adminEmails=you@example.com --wait
+helm upgrade --install bikolbus charts/pinasbus -n bikolbus --create-namespace \
+  --set image.tag=$SHA --set platformAdminEmails=you@example.com \
+  --set 'extraHosts[0]=bikolbus.phlopentech.org' --wait
 ```
 
-Keep `adminEmails` (and any other private value) out of git: pass it with `--set` or an override file you don't commit. Rollback: `helm rollback bikolbus <revision> -n bikolbus` (migrations are additive, so older images still run).
+Keep `platformAdminEmails` (and any other private value) out of git: pass it with `--set` or an override file you don't commit. Rollback: `helm rollback bikolbus <revision> -n bikolbus` (migrations are additive, so older images still run).
 
 ## PayMongo keys and webhook
 
@@ -71,6 +74,10 @@ kubectl -n bikolbus exec bikolbus-db-1 -c postgres -- pg_dump -U postgres -Fc bi
 # restore into an empty database:
 kubectl -n bikolbus exec -i bikolbus-db-1 -c postgres -- pg_restore -U postgres -d bikolbus --clean < bikolbus-YYYY-MM-DD.dump
 ```
+
+## Reset demo data
+
+Platform → Companies → **Reset demo data** (type RESET). It deletes the demo companies, their trips and bookings, and the demo accounts, then seeds them again. Real companies are untouched.
 
 ## Reset a customer's password
 

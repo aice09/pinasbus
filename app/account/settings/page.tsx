@@ -3,6 +3,7 @@ import { Email } from '@/components/Email';
 import { changePassword, deleteAccount, saveProfile } from '@/app/actions/account';
 import { requireUser } from '@/lib/auth';
 import { ActionForm } from '@/components/ActionForm';
+import { PASSENGER_CATEGORIES } from '@/lib/seatpolicy';
 
 export const metadata: Metadata = { title: 'Settings' };
 
@@ -16,6 +17,7 @@ export default async function Settings() {
         <ActionForm action={saveProfile} submit="Save profile">
           <label className="field">Full name<input name="name" required minLength={2} maxLength={80} defaultValue={u.name} /></label>
           <label className="field">Mobile number<input name="phone" type="tel" defaultValue={u.phone} /></label>
+          <label className="field">I usually travel as<select name="passenger_category" defaultValue={u.passenger_category}>{Object.entries(PASSENGER_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
           <p className="note">Email: <Email value={u.email} />. To change it, contact us.</p>
         </ActionForm>
       </section>

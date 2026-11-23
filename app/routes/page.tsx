@@ -1,40 +1,40 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { BUS_CLASSES, hasRestroom, manilaNow, peso, time12 } from '@/lib/catalog';
-import { activeTrips } from '@/lib/routes';
+import { manilaNow, peso, time12 } from '@/lib/catalog';
+import { q } from '@/lib/db';
+import type { Leg, Source, Stop } from '@/lib/trips';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Routes and schedules', description: 'Every daily BikolBus departure between Metro Manila and Bicol, with pick-up times, drop-offs, bus class and fare.' };
+export const metadata: Metadata = { title: 'Routes and schedules', description: 'Every daily departure on PINASBUS with its stops, roads, ferries, bus class and fare.' };
 
 export default async function Routes() {
-  const trips = await activeTrips();
+  const rows = await q<{ org: string; slug: string; route: string; code: string; departure: string; class_name: string; stops: Stop[]; itinerary: Leg[]; mode: string; sources: Source[] }>(
+    `select o.name org, o.slug, r.name route, s.code, to_char(s.departure, 'HH24:MI') departure, s.class_name, r.stops, r.itinerary, r.mode, s.data_sources sources
+       from schedules s join routes r on r.id = s.route_id join organizations o on o.id = s.org_id
+      where s.active and r.active and o.status = 'active' order by r.stops->0->>'name', s.departure`);
   const today = manilaNow().date;
-  const groups = [
-    { h: 'Metro Manila to Bicol', list: trips.filter((t) => t.dir === 'south') },
-    { h: 'Bicol to Metro Manila', list: trips.filter((t) => t.dir === 'north') },
-  ];
+  const byOrigin = Map.groupBy(rows, (r) => r.stops[0].name);
   return (
     <main>
       <h1 className="page-h">Routes and schedules</h1>
-      <p className="lead">Daily departures, every day of the year unless announced. Times are when the bus leaves each pick-up point; arrive 30 minutes early.</p>
-      {groups.map((g) => (
-        <section key={g.h} className="section" aria-label={g.h}>
-          <h2>{g.h}</h2>
+      <p className="lead">Daily departures by starting terminal. Times are when the bus leaves its first stop; roads and ferries are the planned route. Rows marked indicative are demonstration values, not published schedules.</p>
+      {[...byOrigin].map(([origin, list]) => (
+        <section key={origin} className="section tight" aria-label={`From ${origin}`}>
+          <h2>From {origin}</h2>
           <div className="table-wrap">
             <table className="fares small">
-              <thead><tr><th scope="col">Trip</th><th scope="col">Leaves</th><th scope="col">Drop-offs</th><th scope="col">Bus</th><th scope="col">Fare</th><th scope="col"><span className="sr-only">Book</span></th></tr></thead>
-              <tbody>
-                {g.list.sort((a, b) => a.pickups[0].time.localeCompare(b.pickups[0].time)).map((t) => (
-                  <tr key={t.id}>
-                    <th scope="row">{t.code}</th>
-                    <td>{t.pickups.map((p) => <div key={p.station}>{p.station} <span className="num">{time12(p.time)}</span></div>)}</td>
-                    <td>{t.dropoffs.join(', ')}</td>
-                    <td>{BUS_CLASSES[t.busClass].name}<br /><span className="note">{hasRestroom(BUS_CLASSES[t.busClass]) ? 'With CR' : 'No CR'}</span></td>
-                    <td className="num">{peso(t.fare * 100)}</td>
-                    <td><Link href={`/trips/${t.id}?date=${today}`}>Book</Link></td>
-                  </tr>
-                ))}
-              </tbody>
+              <thead><tr><th scope="col">Leaves</th><th scope="col">Company and trip</th><th scope="col">Stops</th><th scope="col">Roads</th><th scope="col">Bus</th><th scope="col">Fare</th><th scope="col"><span className="sr-only">Book</span></th></tr></thead>
+              <tbody>{list.map((r) => (
+                <tr key={r.slug + r.code + r.departure}>
+                  <td className="num">{time12(r.departure)}</td>
+                  <td><Link href={`/operators/${r.slug}`}>{r.org}</Link><br /><span className="note">Trip {r.code}</span></td>
+                  <td>{r.stops.map((s) => s.name).join(', ')}</td>
+                  <td className="note">{r.itinerary.map((l) => l.name).join(', ') || 'Not published'}</td>
+                  <td>{r.class_name}</td>
+                  <td className="num">{peso(Math.max(...r.stops.map((s) => s.fare)) * 100)}{r.sources.some((s) => !s.verified) && <span className="chip no">indicative</span>}</td>
+                  <td><Link href={`/trips?${new URLSearchParams({ from: origin, to: r.stops.at(-1)!.name, date: today })}`}>Book</Link></td>
+                </tr>
+              ))}</tbody>
             </table>
           </div>
         </section>

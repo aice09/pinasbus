@@ -1,5 +1,6 @@
 [
  {
+  "operator": "Isarog Line",
   "code": "23A",
   "dir": "north",
   "bus": "REGULAR WITHOUT CR",
@@ -17,6 +18,7 @@
   "id": "23a-n"
  },
  {
+  "operator": "Isarog Line",
   "code": "26E",
   "dir": "north",
   "bus": "NON-AIRCON",
@@ -34,6 +36,7 @@
   "id": "26e-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "A",
   "dir": "north",
   "bus": "ELITE 26",
@@ -50,6 +53,7 @@
   "id": "a-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "A",
   "dir": "south",
   "bus": "ELITE 26",
@@ -74,6 +78,7 @@
   "id": "a-s"
  },
  {
+  "operator": "Isarog Line",
   "code": "B",
   "dir": "north",
   "bus": "ELITE 26",
@@ -91,6 +96,7 @@
   "id": "b-n"
  },
  {
+  "operator": "Isarog Line",
   "code": "B",
   "dir": "south",
   "bus": "ELITE 26",
@@ -111,6 +117,7 @@
   "id": "b-s"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "B17",
   "dir": "north",
   "bus": "REGULAR WITHOUT CR",
@@ -132,6 +139,7 @@
   "id": "b17-n"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "B17",
   "dir": "south",
   "bus": "REGULAR WITHOUT CR",
@@ -156,6 +164,7 @@
   "id": "b17-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "C",
   "dir": "north",
   "bus": "ELITE 26",
@@ -172,6 +181,7 @@
   "id": "c-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "C",
   "dir": "south",
   "bus": "ELITE 26",
@@ -192,6 +202,7 @@
   "id": "c-s"
  },
  {
+  "operator": "Isarog Line",
   "code": "D",
   "dir": "north",
   "bus": "ELITE 26",
@@ -212,6 +223,7 @@
   "id": "d-n"
  },
  {
+  "operator": "Isarog Line",
   "code": "D",
   "dir": "south",
   "bus": "ELITE 26",
@@ -232,6 +244,7 @@
   "id": "d-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "E",
   "dir": "south",
   "bus": "ELITE 26",
@@ -256,6 +269,7 @@
   "id": "e-s"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "ECOCAT-A",
   "dir": "north",
   "bus": "NON-AIRCON",
@@ -273,6 +287,7 @@
   "id": "ecocat-a-n"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "ECOCAT-A",
   "dir": "south",
   "bus": "NON-AIRCON",
@@ -297,6 +312,7 @@
   "id": "ecocat-a-s"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "EXECAT-A",
   "dir": "north",
   "bus": "REGULAR WITHOUT CR",
@@ -314,6 +330,7 @@
   "id": "execat-a-n"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "EXECAT-A",
   "dir": "south",
   "bus": "REGULAR WITHOUT CR",
@@ -334,6 +351,7 @@
   "id": "execat-a-s"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "EXECAT-B",
   "dir": "north",
   "bus": "REGULAR WITHOUT CR",
@@ -351,6 +369,7 @@
   "id": "execat-b-n"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "EXECAT-B",
   "dir": "south",
   "bus": "REGULAR WITHOUT CR",
@@ -375,6 +394,7 @@
   "id": "execat-b-s"
  },
  {
+  "operator": "Isarog Line",
   "code": "EXELEG",
   "dir": "north",
   "bus": "REGULAR WITHOUT CR",
@@ -391,6 +411,7 @@
   "id": "exeleg-n"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "EXETAB-A",
   "dir": "north",
   "bus": "REGULAR WITHOUT CR",
@@ -411,6 +432,7 @@
   "id": "exetab-a-n"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "EXETAB-A",
   "dir": "south",
   "bus": "REGULAR WITHOUT CR",
@@ -435,6 +457,7 @@
   "id": "exetab-a-s"
  },
  {
+  "operator": "Isarog Line",
   "code": "F",
   "dir": "south",
   "bus": "ELITE 26",
@@ -451,6 +474,7 @@
   "id": "f-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "I",
   "dir": "north",
   "bus": "ELITE 26",
@@ -467,6 +491,7 @@
   "id": "i-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "J",
   "dir": "north",
   "bus": "ELITE 26",
@@ -484,6 +509,7 @@
   "id": "j-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "J",
   "dir": "south",
   "bus": "ELITE 26",
@@ -500,6 +526,7 @@
   "id": "j-s"
  },
  {
+  "operator": "Isarog Line",
   "code": "M",
   "dir": "south",
   "bus": "ELITE 26",
@@ -524,6 +551,7 @@
   "id": "m-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "N",
   "dir": "north",
   "bus": "ELITE 26",
@@ -541,6 +569,7 @@
   "id": "n-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "N",
   "dir": "south",
   "bus": "ELITE 26",
@@ -565,6 +594,7 @@
   "id": "n-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "P",
   "dir": "north",
   "bus": "ELITE 26",
@@ -581,6 +611,7 @@
   "id": "p-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "P",
   "dir": "south",
   "bus": "ELITE 26",
@@ -605,6 +636,7 @@
   "id": "p-s"
  },
  {
+  "operator": "RSL Bus",
   "code": "P2",
   "dir": "south",
   "bus": "REGULAR WITHOUT CR",
@@ -621,6 +653,7 @@
   "id": "p2-s"
  },
  {
+  "operator": "Isarog Line",
   "code": "Q",
   "dir": "north",
   "bus": "ELITE 26",
@@ -643,6 +676,7 @@
   "id": "q-n"
  },
  {
+  "operator": "Isarog Line",
   "code": "Q",
   "dir": "south",
   "bus": "ELITE 26",
@@ -671,6 +705,7 @@
   "id": "q-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "R1",
   "dir": "south",
   "bus": "ELITE 26",
@@ -691,6 +726,7 @@
   "id": "r1-s"
  },
  {
+  "operator": "Isarog Line",
   "code": "SB",
   "dir": "north",
   "bus": "Regular Sleeper Bus",
@@ -712,6 +748,7 @@
   "id": "sb-n"
  },
  {
+  "operator": "Isarog Line",
   "code": "SB",
   "dir": "south",
   "bus": "Regular Sleeper Bus",
@@ -736,6 +773,7 @@
   "id": "sb-s"
  },
  {
+  "operator": "Isarog Line",
   "code": "SR",
   "dir": "north",
   "bus": "Ultimate Sleeper Bus",
@@ -753,6 +791,7 @@
   "id": "sr-n"
  },
  {
+  "operator": "Isarog Line",
   "code": "SR",
   "dir": "south",
   "bus": "Ultimate Sleeper Bus",
@@ -777,6 +816,7 @@
   "id": "sr-s"
  },
  {
+  "operator": "Isarog Line",
   "code": "T",
   "dir": "south",
   "bus": "ELITE 26",
@@ -793,6 +833,7 @@
   "id": "t-s"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "V1",
   "dir": "north",
   "bus": "REGULAR WITHOUT CR",
@@ -810,6 +851,7 @@
   "id": "v1-n"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "V1",
   "dir": "south",
   "bus": "REGULAR WITHOUT CR",
@@ -834,6 +876,7 @@
   "id": "v1-s"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "V2",
   "dir": "north",
   "bus": "REGULAR WITHOUT CR",
@@ -850,6 +893,7 @@
   "id": "v2-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z1",
   "dir": "north",
   "bus": "SKYBUS WITH CR",
@@ -866,6 +910,7 @@
   "id": "z1-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z1",
   "dir": "south",
   "bus": "SKYBUS WITH CR",
@@ -890,6 +935,7 @@
   "id": "z1-s"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "Z10",
   "dir": "north",
   "bus": "SKYBUS WITH CR",
@@ -907,6 +953,7 @@
   "id": "z10-n"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "Z10",
   "dir": "south",
   "bus": "SKYBUS WITH CR",
@@ -927,6 +974,7 @@
   "id": "z10-s"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "Z15",
   "dir": "north",
   "bus": "SKYBUS WITH CR",
@@ -943,6 +991,7 @@
   "id": "z15-n"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "Z15",
   "dir": "south",
   "bus": "SKYBUS WITH CR",
@@ -963,6 +1012,7 @@
   "id": "z15-s"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "Z16",
   "dir": "north",
   "bus": "SKYBUS WITH CR",
@@ -980,6 +1030,7 @@
   "id": "z16-n"
  },
  {
+  "operator": "Legaspi St. Jude Transport Lines Inc.",
   "code": "Z16",
   "dir": "south",
   "bus": "SKYBUS WITH CR",
@@ -1000,6 +1051,7 @@
   "id": "z16-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z17",
   "dir": "north",
   "bus": "SKYBUS WITH CR",
@@ -1021,6 +1073,7 @@
   "id": "z17-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z17",
   "dir": "south",
   "bus": "SKYBUS WITH CR",
@@ -1045,6 +1098,7 @@
   "id": "z17-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z2",
   "dir": "north",
   "bus": "SKYBUS WITH CR",
@@ -1062,6 +1116,7 @@
   "id": "z2-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z2",
   "dir": "south",
   "bus": "SKYBUS WITH CR",
@@ -1086,6 +1141,7 @@
   "id": "z2-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z3",
   "dir": "north",
   "bus": "SKYBUS WITH CR",
@@ -1103,6 +1159,7 @@
   "id": "z3-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z3",
   "dir": "south",
   "bus": "SKYBUS WITH CR",
@@ -1127,6 +1184,7 @@
   "id": "z3-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z5",
   "dir": "north",
   "bus": "SKYBUS WITH CR",
@@ -1148,6 +1206,7 @@
   "id": "z5-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z5",
   "dir": "south",
   "bus": "SKYBUS WITH CR",
@@ -1172,6 +1231,7 @@
   "id": "z5-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z6",
   "dir": "north",
   "bus": "SKYBUS WITH CR",
@@ -1190,6 +1250,7 @@
   "id": "z6-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z6",
   "dir": "south",
   "bus": "SKYBUS WITH CR",
@@ -1218,6 +1279,7 @@
   "id": "z6-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z7",
   "dir": "north",
   "bus": "SKYBUS WITH CR",
@@ -1235,6 +1297,7 @@
   "id": "z7-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z7",
   "dir": "south",
   "bus": "SKYBUS WITH CR",
@@ -1259,6 +1322,7 @@
   "id": "z7-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z8",
   "dir": "north",
   "bus": "SKYBUS WITH CR",
@@ -1275,6 +1339,7 @@
   "id": "z8-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z8",
   "dir": "south",
   "bus": "SKYBUS WITH CR",
@@ -1299,6 +1364,7 @@
   "id": "z8-s"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z9",
   "dir": "north",
   "bus": "SKYBUS WITH CR",
@@ -1316,6 +1382,7 @@
   "id": "z9-n"
  },
  {
+  "operator": "Peñafrancia Tours",
   "code": "Z9",
   "dir": "south",
   "bus": "SKYBUS WITH CR",

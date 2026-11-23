@@ -2,10 +2,10 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { createPadala } from '@/app/actions/public';
 import { currentUser } from '@/lib/auth';
-import { network, peso } from '@/lib/catalog';
+import { peso } from '@/lib/catalog';
+import { network } from '@/lib/trips';
 import { getRates, shipmentByRef } from '@/lib/padala';
 import { paymentsConfigured } from '@/lib/paymongo';
-import { activeTrips } from '@/lib/routes';
 import { ActionForm } from '@/components/ActionForm';
 import { PadalaFields } from '@/components/PadalaFields';
 import { RouteSelects } from '@/components/RouteSelects';
@@ -15,11 +15,10 @@ export const metadata: Metadata = { title: 'Padala: send a package', description
 
 export default async function Padala({ searchParams }: { searchParams: Promise<{ again?: string }> }) {
   const { again } = await searchParams;
-  const [user, rates, trips] = await Promise.all([currentUser(), getRates(), activeTrips()]);
+  const [user, rates, pairs] = await Promise.all([currentUser(), getRates(), network()]);
   // "Send again" only prefills from the signed-in user's own shipment.
   const prev = again && user ? await shipmentByRef(again) : null;
   const p = prev && prev.user_id === user?.id ? prev : null;
-  const { pairs } = network(trips);
 
   return (
     <main>

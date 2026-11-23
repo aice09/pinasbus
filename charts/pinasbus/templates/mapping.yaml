@@ -1,0 +1,16 @@
+{{- if .Values.mapping.enabled }}
+{{- range $i, $h := prepend .Values.extraHosts .Values.host }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ $.Release.Name }}{{ if $i }}-{{ $i }}{{ end }}
+  labels: {{- include "bikolbus.labels" $ | nindent 4 }}
+spec:
+  hostname: {{ $h }}
+  prefix: /
+  rewrite: ""
+  service: {{ $.Release.Name }}.{{ $.Release.Namespace }}:80
+  timeout_ms: 30000
+{{- end }}
+{{- end }}

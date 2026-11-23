@@ -16,7 +16,7 @@ export default async function Track({ searchParams }: { searchParams: Promise<{ 
   const s = found ? await syncShipment(found) : null;
   const events = s ? await shipmentEvents(s.id) : [];
   const user = await currentUser();
-  const mine = s && user && (s.user_id === user.id || user.role === 'admin');
+  const mine = s && user && (s.user_id === user.id || user.platform_role === 'platform_admin');
   const step = s ? FLOW.indexOf(s.status as (typeof FLOW)[number]) : -1;
 
   return (

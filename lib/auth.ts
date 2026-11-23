@@ -1,36 +1,30 @@
-import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from 'node:crypto';
-import { promisify } from 'node:util';
+import { createHash, randomBytes } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
 import { q } from './db.ts';
+import type { Role } from './rbac.ts';
+import type { PassengerCategory } from './seatpolicy.ts';
 
-const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
-const COOKIE = 'bb_session';
+export { hashPassword, verifyPassword } from './password.ts';
+
+const COOKIE = 'pb_session';
 const SESSION_DAYS = 30;
 
-export type User = { id: string; email: string; name: string; phone: string; role: 'customer' | 'admin'; created_at: Date };
-
-export async function hashPassword(pw: string) {
-  const salt = randomBytes(16);
-  return `scrypt$${salt.toString('base64')}$${(await scrypt(pw, salt, 64)).toString('base64')}`;
-}
-
-export async function verifyPassword(pw: string, stored: string) {
-  const [alg, salt, hash] = stored.split('$');
-  if (alg !== 'scrypt' || !salt || !hash) return false;
-  const want = Buffer.from(hash, 'base64');
-  const got = await scrypt(pw, Buffer.from(salt, 'base64'), want.length);
-  return timingSafeEqual(got, want);
-}
+export type Membership = { org_id: string; role: Role; org_name: string; org_slug: string; org_kind: string; org_status: string };
+export type User = {
+  id: string; email: string; name: string; phone: string; created_at: Date;
+  platform_role: 'none' | 'platform_admin'; passenger_category: PassengerCategory; id_type: string; id_last4: string;
+  must_change_password: boolean; memberships: Membership[];
+};
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 
-/** Emails listed in ADMIN_EMAILS become admins when they sign up or sign in. */
-const adminEmails = () => (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+/** Emails listed in PLATFORM_ADMIN_EMAILS (or the older ADMIN_EMAILS) become platform admins when they sign in. */
+const adminEmails = () => (process.env.PLATFORM_ADMIN_EMAILS ?? process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
 
 export async function startSession(userId: string, email: string) {
-  if (adminEmails().includes(email.toLowerCase())) await q(`update users set role = 'admin' where id = $1`, [userId]);
+  if (adminEmails().includes(email.toLowerCase())) await q(`update users set platform_role = 'platform_admin', role = 'admin' where id = $1`, [userId]);
   const token = randomBytes(32).toString('base64url');
   await q(`insert into sessions (token_hash, user_id, expires_at) values ($1, $2, now() + make_interval(days => $3))`, [sha(token), userId, SESSION_DAYS]);
   await q(`delete from sessions where user_id = $1 and expires_at < now()`, [userId]);
@@ -46,14 +40,19 @@ export async function endSession() {
   jar.delete(COOKIE);
 }
 
-/** The signed-in user for this request, or null. Cached per request. */
+/** The signed-in user for this request with their organization memberships, or null. Cached per request. */
 export const currentUser = cache(async (): Promise<User | null> => {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token || token.length > 100) return null;
-  const rows = await q<User>(
-    `select u.id, u.email, u.name, u.phone, u.role, u.created_at from sessions s join users u on u.id = s.user_id
-      where s.token_hash = $1 and s.expires_at > now()`, [sha(token)]);
-  return rows[0] ?? null;
+  const rows = await q<Omit<User, 'memberships'>>(
+    `select u.id, u.email, u.name, u.phone, u.created_at, u.platform_role, u.passenger_category, u.id_type, u.id_last4, u.must_change_password
+       from sessions s join users u on u.id = s.user_id
+      where s.token_hash = $1 and s.expires_at > now() and not u.disabled`, [sha(token)]);
+  if (!rows[0]) return null;
+  const memberships = await q<Membership>(
+    `select m.org_id, m.role, o.name org_name, o.slug org_slug, o.kind org_kind, o.status org_status
+       from memberships m join organizations o on o.id = m.org_id where m.user_id = $1 order by o.name`, [rows[0].id]);
+  return { ...rows[0], memberships };
 });
 
 export async function requireUser(next = '/account') {
@@ -62,9 +61,9 @@ export async function requireUser(next = '/account') {
   return u;
 }
 
-export async function requireAdmin() {
-  const u = await requireUser('/admin');
-  if (u.role !== 'admin') redirect('/account');
+export async function requirePlatformAdmin() {
+  const u = await requireUser('/platform');
+  if (u.platform_role !== 'platform_admin') redirect('/account');
   return u;
 }
 
