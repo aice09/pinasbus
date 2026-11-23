@@ -153,7 +153,9 @@ export default function Bus3D(props: Props) {
   const [hover, setHover] = useState<string | null>(null);
   const target = useMemo(() => new THREE.Vector3(0, 0.8, 0), []);
   const { length } = dims(props.layout);
-  const d = length * 1.05 + 3; // far enough to frame the whole bus at fov 40
+  // Far enough to frame the whole bus at fov 40; portrait phones need more distance for the same width.
+  const narrow = typeof window !== 'undefined' && window.innerWidth < 640;
+  const d = (length * 1.05 + 3) * (narrow ? 1.6 : 1);
   const camPos: [number, number, number] = [d * 0.55, d * 0.62, d * 0.55];
   return (
     <div className="canvas3d">
