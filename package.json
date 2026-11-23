@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "test": "node --test lib/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:db": "node --test lib/bookings.itest.ts"
   },
   "license": "UNLICENSED",
   "dependencies": {

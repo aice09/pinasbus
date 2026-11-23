@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import { pool, ready, tx } from './db';
-import { expireCheckout, paidPayment } from './paymongo';
+import { pool, ready, tx } from './db.ts';
+import { expireCheckout, paidPayment } from './paymongo.ts';
 
 export const HOLD_MINUTES = 15;
 
