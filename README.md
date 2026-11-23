@@ -1,6 +1,8 @@
 # BikolBus
 
-Bus seat booking for Manila–Bicol routes: search trips, pick seats on a 3D bus (or an accessible seat plan), pay with PayMongo Checkout (GCash, Maya, card).
+**Docs:** [user guide](docs/user-guide.md) · [admin guide](docs/admin-guide.md) · [operations runbook](docs/operations.md) · [architecture](docs/architecture.md) · [HTTP API](docs/api.md)
+
+Bus seat booking and Padala for Manila–Bicol routes: search trips on admin-managed routes, pick seats on a 3D bus (or an accessible seat plan), pay with PayMongo Checkout (GCash, Maya, card). Customer accounts with saved passengers, trip and Padala history and rebooking; an admin dashboard with charts; Prometheus metrics and a Grafana dashboard.
 
 - **App:** Next.js 16 (App Router), PostgreSQL (`pg`), three.js through `@react-three/fiber`.
 - **Data:** routes, bus classes and fares are in `data/trips.json`, scraped from the operator's public trip search (`scripts/parse.py`, `scripts/catalog.py`). The convenience fee is the operator's 5.2% + PHP 16 per seat.
@@ -21,6 +23,8 @@ npm test   # pricing, seat layouts, booking window, webhook signature
 | `PAYMONGO_WEBHOOK_SECRET` | `whsk_…` of the webhook for `checkout_session.payment.paid` → `https://<host>/api/paymongo/webhook` |
 | `PAYMONGO_METHODS` | default `card,gcash,paymaya` |
 | `PUBLIC_BASE_URL` | used for PayMongo success/cancel redirects |
+| `ADMIN_EMAILS` | comma-separated emails that become admins at sign-up/sign-in |
+| `METRICS_TOKEN` | bearer token for `/api/metrics` |
 
 ## Deploy (Kubernetes)
 

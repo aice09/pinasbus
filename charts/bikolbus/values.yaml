@@ -30,10 +30,25 @@ database:
   # Or point at your own database: Secret with key DATABASE_URL (used when cnpg.enabled is false).
   existingSecret: ""
 
+# Comma-separated emails that become admins when they sign up or sign in. Keep real addresses out of git:
+# pass them with --set adminEmails=... or an override file.
+adminEmails: ""
+
+metrics:
+  # Bearer token Prometheus uses to scrape /api/metrics; generated once and kept across upgrades.
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+  grafanaDashboard:
+    enabled: true
+    namespace: prometheus      # where the Grafana sidecar looks for ConfigMaps labelled grafana_dashboard=1
+    folder: BikolBus
+
 networkPolicy:
   enabled: true
   ingressNamespace: emissary
   cnpgNamespace: cnpg-system
+  prometheusNamespace: prometheus
 
 resources:
   requests: { cpu: 50m, memory: 160Mi }

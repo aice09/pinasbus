@@ -2,8 +2,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { price, BUS_CLASSES, TRIPS, isBookable, manilaNow, addDays } from './catalog.ts';
+import { price, BUS_CLASSES, isBookable, manilaNow, addDays, network, connects } from './catalog.ts';
+import { seedTrips } from './seed.ts';
+import { padalaFee, maskName, DEFAULT_RATES } from './padala.ts';
+import { seatName } from './layouts.ts';
 import { verifySignature } from './paymongo.ts';
+
+const TRIPS = seedTrips();
 
 test('fee matches the source site (PHP 1,560 -> 97.12, PHP 2,900 -> 166.80)', () => {
   assert.equal(price(1560, 1).fee, 9712);
@@ -47,4 +52,25 @@ test('webhook signature: accepts a valid test signature, rejects tampering and w
   assert.equal(verifySignature(`t=123,te=${sig},li=`, body, secret, true), false);
   assert.equal(verifySignature(null, body, secret, false), false);
   assert.equal(verifySignature(`t=123,te=${sig}`, body, '', false), false);
+});
+
+test('route network only offers pairs a trip serves', () => {
+  const { pairs } = network(TRIPS);
+  assert.ok(pairs['EDSA Cubao'].includes('Naga CBD'));
+  assert.ok(!pairs['EDSA Cubao'].includes('EDSA Cubao'));
+  assert.equal(connects(TRIPS, 'EDSA Cubao', 'Naga CBD'), true);
+  assert.equal(connects(TRIPS, 'Naga CBD', 'Gubat'), false);
+});
+
+test('padala fee: base + per started kg + valuation', () => {
+  assert.equal(padalaFee(DEFAULT_RATES, 1, 0), 15000 + 2500);
+  assert.equal(padalaFee(DEFAULT_RATES, 2.1, 100000), 15000 + 2500 * 3 + 1000);
+  assert.equal(maskName('Juan Dela Cruz'), 'Juan C.');
+  assert.equal(maskName('Ana'), 'Ana');
+});
+
+test('seat names spell out sleeper decks', () => {
+  assert.equal(seatName('L3'), 'Lower berth 3');
+  assert.equal(seatName('U10'), 'Upper berth 10');
+  assert.equal(seatName('12'), 'Seat 12');
 });

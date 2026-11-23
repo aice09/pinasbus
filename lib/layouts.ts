@@ -33,3 +33,7 @@ export function layoutFor(busClass: string, seats: number): Seat[] {
     default: return coach(seats, [0, 1, 3, 4, 5]);
   }
 }
+
+/** "L3" -> "Lower berth 3", "U4" -> "Upper berth 4", "12" -> "Seat 12". */
+export const seatName = (id: string) =>
+  id.startsWith('L') ? `Lower berth ${id.slice(1)}` : id.startsWith('U') ? `Upper berth ${id.slice(1)}` : `Seat ${id}`;

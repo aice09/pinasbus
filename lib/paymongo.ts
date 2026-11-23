@@ -1,5 +1,6 @@
 // PayMongo Checkout Sessions: https://developers.paymongo.com/reference/checkout-session-resource
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { metrics } from './metrics.ts';
 
 const API = 'https://api.paymongo.com/v1';
 
@@ -14,6 +15,7 @@ async function call(path: string, init: RequestInit = {}) {
     signal: AbortSignal.timeout(15000),
   });
   const body = await res.json().catch(() => ({}));
+  metrics().paymongo.inc({ op: `${init.method ?? 'GET'} ${path.replace(/\/(cs|hook)_[\w]+/, '/:id')}`, status: String(res.status) });
   if (!res.ok) throw new Error(`PayMongo ${init.method ?? 'GET'} ${path} ${res.status}: ${JSON.stringify(body.errors ?? body).slice(0, 500)}`);
   return body.data;
 }

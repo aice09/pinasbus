@@ -1,0 +1,45 @@
+{{- $existing := lookup "v1" "Secret" .Release.Namespace (printf "%s-metrics" .Release.Name) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-metrics
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+type: Opaque
+data:
+  token: {{ if $existing }}{{ index $existing.data "token" }}{{ else }}{{ randAlphaNum 40 | b64enc }}{{ end }}
+{{- if .Values.metrics.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: bikolbus
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  endpoints:
+    - port: http
+      path: /api/metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      authorization:
+        type: Bearer
+        credentials: { name: {{ .Release.Name }}-metrics, key: token }
+{{- end }}
+{{- if .Values.metrics.grafanaDashboard.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-grafana-dashboard
+  namespace: {{ .Values.metrics.grafanaDashboard.namespace }}
+  labels:
+    {{- include "bikolbus.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: {{ .Values.metrics.grafanaDashboard.folder }}
+data:
+  bikolbus.json: |-
+{{ .Files.Get "dashboards/bikolbus.json" | indent 4 }}
+{{- end }}

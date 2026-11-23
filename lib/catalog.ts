@@ -1,6 +1,4 @@
-// Routes, bus classes and fares. Fares and schedules are copied from the operator's public trip search
-// (scripts/parse.py + scripts/catalog.py regenerate data/trips.json).
-import trips from '../data/trips.json' with { type: 'json' };
+// Bus classes, pricing and date helpers. Trips live in the database (lib/routes.ts), seeded from data/trips.json.
 import { layoutFor, type Seat } from './layouts.ts';
 
 export type BusClassId = 'sleeper22' | 'sleeper20' | 'elite' | 'skybus' | 'regular' | 'nonac';
@@ -27,15 +25,6 @@ export const BUS_CLASSES: Record<BusClassId, BusClass> = {
   nonac: cls('nonac', 'Non-Aircon', 57, ['Open windows', '2+3 seats'], 'The lowest fare, 2+3 seats with open windows.'),
 };
 
-const BUS_NAME: Record<string, BusClassId> = {
-  'Ultimate Sleeper Bus': 'sleeper22',
-  'Regular Sleeper Bus': 'sleeper20',
-  'ELITE 26': 'elite',
-  'SKYBUS WITH CR': 'skybus',
-  'REGULAR WITHOUT CR': 'regular',
-  'NON-AIRCON': 'nonac',
-};
-
 export const METRO_MANILA = ['EDSA Cubao', 'Aurora Cubao', 'Arcovia Pasig', 'Avenida', 'Ermita', 'PITX', 'Alabang', 'Alabang Starmall', 'Turbina'];
 
 export type Trip = {
@@ -46,18 +35,26 @@ export type Trip = {
   fare: number; // pesos per seat
   pickups: { station: string; time: string }[]; // time = HH:MM, Asia/Manila
   dropoffs: string[];
+  active: boolean;
 };
 
-export const TRIPS: Trip[] = (trips as { id: string; code: string; dir: string; bus: string; fare: number; pickups: Trip['pickups']; dropoffs: string[] }[]).map((t) => {
-  const busClass = BUS_NAME[t.bus];
-  if (!busClass) throw new Error(`unknown bus class ${t.bus} in data/trips.json`);
-  return { id: t.id, code: t.code, dir: t.dir as Trip['dir'], busClass, fare: t.fare, pickups: t.pickups, dropoffs: t.dropoffs };
-});
+export const hasRestroom = (c: BusClass) => c.amenities.includes('Restroom');
 
-export const tripById = (id: string) => TRIPS.find((t) => t.id === id);
+/** Every pick-up -> the drop-offs reachable from it on an active trip. Drives the From/To selects. */
+export function network(trips: Trip[]) {
+  const pairs: Record<string, string[]> = {};
+  for (const t of trips) for (const p of t.pickups) pairs[p.station] = [...new Set([...(pairs[p.station] ?? []), ...t.dropoffs])].sort();
+  const pickups = Object.keys(pairs).sort();
+  const dropoffs = [...new Set(Object.values(pairs).flat())].sort();
+  return { pairs, pickups, dropoffs };
+}
 
-export const PICKUP_STATIONS = [...new Set(TRIPS.flatMap((t) => t.pickups.map((p) => p.station)))].sort();
-export const DROPOFF_STATIONS = [...new Set(TRIPS.flatMap((t) => t.dropoffs))].sort();
+export const connects = (trips: Trip[], from: string, to: string) =>
+  trips.some((t) => t.pickups.some((p) => p.station === from) && t.dropoffs.includes(to));
+
+export function matchTrips(trips: Trip[], from?: string, to?: string) {
+  return trips.filter((t) => (!from || t.pickups.some((p) => p.station === from)) && (!to || t.dropoffs.includes(to)));
+}
 
 /** Fare in centavos plus the operator's online convenience fee (5.2% + PHP 16 per seat, as charged on the source site). */
 export function price(farePesos: number, seats: number) {
@@ -68,10 +65,6 @@ export function price(farePesos: number, seats: number) {
 
 export const peso = (centavos: number) =>
   'PHP ' + (centavos / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-export function matchTrips(from?: string, to?: string) {
-  return TRIPS.filter((t) => (!from || t.pickups.some((p) => p.station === from)) && (!to || t.dropoffs.includes(to)));
-}
 
 /** Today's date in Manila as YYYY-MM-DD, and minutes since midnight. */
 export function manilaNow(now = new Date()) {

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import type { Seat } from '@/lib/layouts';
+import { seatName, type Seat } from '@/lib/layouts';
 
 type Props = { layout: Seat[]; taken: Set<string>; selected: string[]; onToggle: (id: string) => void; restroom: boolean };
 
@@ -57,6 +57,20 @@ function label(text: string, dark: boolean) {
     labelCache.set(key, t);
   }
   return t;
+}
+
+function Tag({ text, position, scale = 1 }: { text: string; position: [number, number, number]; scale?: number }) {
+  const tex = useMemo(() => {
+    const cv = document.createElement('canvas');
+    cv.width = 512; cv.height = 128;
+    const g = cv.getContext('2d')!;
+    g.fillStyle = 'rgba(26,31,28,0.88)';
+    g.beginPath(); g.roundRect(4, 4, 504, 120, 28); g.fill();
+    g.fillStyle = '#ffffff'; g.font = 'bold 60px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(text, 256, 68);
+    return new THREE.CanvasTexture(cv);
+  }, [text]);
+  return <sprite position={position} scale={[1.6 * scale, 0.4 * scale, 1]}><spriteMaterial map={tex} depthTest={false} /></sprite>;
 }
 
 function SeatMesh({ seat, pos, state, hovered, onHover, onToggle }: {
@@ -141,8 +155,16 @@ function Bus({ layout, taken, selected, onToggle, restroom, lift, hover, setHove
           <boxGeometry args={[sleeper ? 0.7 : 0.7, 1.4, sleeper ? 1.6 : 0.7]} /><meshStandardMaterial color="#d9ddd3" transparent opacity={0.8} />
         </mesh>
       )}
+      {restroom && (
+        <Tag text="CR" scale={0.6} position={[sleeper ? place({ id: 'cr', x: cols - 1, row: rows - 1, deck: 0, berth: true })[0] : (width / 2 - 0.4), 1.9, length / 2 - (sleeper ? pitch / 2 + 0.3 : 0.4)]} />
+      )}
+      <Tag text="FRONT" scale={0.7} position={[0, height + 0.5, -length / 2]} />
       {layout.filter((s) => s.deck === 0).map(render)}
-      <group ref={upper}>{layout.filter((s) => s.deck === 1).map(render)}</group>
+      {sleeper && <Tag text="Lower deck (L)" position={[-width / 2 - 1.1, 0.5, z0]} />}
+      <group ref={upper}>
+        {layout.filter((s) => s.deck === 1).map(render)}
+        {sleeper && <Tag text="Upper deck (U)" position={[-width / 2 - 1.1, 1.5, z0]} />}
+      </group>
     </group>
   );
 }
@@ -167,7 +189,7 @@ export default function Bus3D(props: Props) {
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.38, 0]} receiveShadow><circleGeometry args={[14, 48]} /><shadowMaterial opacity={0.18} /></mesh>
         <Controls target={target} maxDistance={d * 1.6} />
       </Canvas>
-      {hover && <span className="hover-tag">{sleeper ? 'Berth' : 'Seat'} {hover}</span>}
+      {hover && <span className="hover-tag">{seatName(hover)}</span>}
       <span className="hint">Drag to turn, scroll or pinch to zoom, tap a seat to pick it.</span>
       {sleeper && (
         <button type="button" className="btn quiet" style={{ position: 'absolute', right: 12, bottom: 10, minHeight: 36, background: 'var(--surface)' }} aria-pressed={lift} onClick={() => setLift((v) => !v)}>

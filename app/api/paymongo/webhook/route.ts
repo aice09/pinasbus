@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { markPaid } from '@/lib/bookings';
+import { markShipmentPaid } from '@/lib/padala';
 import { verifySignature } from '@/lib/paymongo';
 
 // PayMongo event: checkout_session.payment.paid. Register this URL in the PayMongo dashboard (Developers > Webhooks).
@@ -18,8 +19,9 @@ export async function POST(req: NextRequest) {
     const session = attrs.data;
     const paid = (session?.attributes?.payments ?? []).find((p: { attributes: { status: string } }) => p.attributes.status === 'paid');
     if (session?.id && paid) {
-      const b = await markPaid(session.id, paid.id, paid.attributes.amount);
-      console.log('webhook paid', session.id, b?.ref, b?.status);
+      const amount = paid.attributes.amount;
+      const done = (await markPaid(session.id, paid.id, amount)) ?? (await markShipmentPaid(session.id, paid.id, amount));
+      console.log('webhook paid', session.id, done?.ref ?? 'unknown checkout', done?.status);
     }
   }
   return NextResponse.json({ received: true });

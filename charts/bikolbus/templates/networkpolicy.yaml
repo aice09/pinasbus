@@ -21,6 +21,7 @@ spec:
   ingress:
     - from:
         - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: {{ .Values.networkPolicy.ingressNamespace }} } }
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: {{ .Values.networkPolicy.prometheusNamespace }} } }
       ports: [{ port: 3000, protocol: TCP }]
 {{- if .Values.database.cnpg.enabled }}
 ---

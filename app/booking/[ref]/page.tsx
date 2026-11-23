@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { byRef, syncFromPaymongo } from '@/lib/bookings';
-import { BUS_CLASSES, peso, time12, tripById } from '@/lib/catalog';
+import { BUS_CLASSES, peso, time12 } from '@/lib/catalog';
+import { tripById } from '@/lib/routes';
+import { seatName } from '@/lib/layouts';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Your booking', robots: { index: false } };
@@ -12,6 +14,7 @@ const STATUS = {
   pending: ['pending', 'Waiting for payment'],
   expired: ['expired', 'Seat hold expired'],
   needs_refund: ['needs_refund', 'Paid, but the seats were taken. We will refund you.'],
+  refunded: ['expired', 'Refunded'],
 } as const;
 
 export default async function BookingPage({ params, searchParams }: { params: Promise<{ ref: string }>; searchParams: Promise<{ cancelled?: string }> }) {
@@ -21,7 +24,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   const found = await byRef(ref);
   if (!found) notFound();
   const b = await syncFromPaymongo(found);
-  const trip = tripById(b.trip_id);
+  const trip = await tripById(b.trip_id);
   const cls = trip && BUS_CLASSES[trip.busClass];
   const pick = trip?.pickups.find((p) => p.station === b.pickup);
   const [cssClass, text] = STATUS[b.status];
@@ -43,15 +46,18 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
           {b.status === 'needs_refund' && <p>Keep this reference. A refund for {peso(b.total_centavos)} goes back to the account you paid with.</p>}
           <div className="ticket-grid">
             <div><small>Reference</small><strong className="ref">{b.ref}</strong></div>
-            <div><small>Passenger</small><strong>{b.name}</strong></div>
-            <div><small>{cls?.layout[0].berth ? 'Berths' : 'Seats'}</small><strong>{b.seats.join(', ')}</strong></div>
+            <div><small>Contact</small><strong>{b.name}</strong></div>
             <div><small>Bus</small><strong>{cls?.name ?? b.trip_id}, trip {trip?.code}</strong></div>
             <div><small>Board at</small><strong>{b.pickup}{pick && `, ${time12(pick.time)}`}</strong></div>
             <div><small>Total paid</small><strong>{peso(b.total_centavos)}</strong></div>
           </div>
+          <table className="fares small">
+            <thead><tr><th scope="col">{cls?.layout[0].berth ? 'Berth' : 'Seat'}</th><th scope="col">Passenger</th></tr></thead>
+            <tbody>{b.seats.map((s) => <tr key={s}><td>{seatName(s)}</td><td>{b.passengers.find((p) => p.seat === s)?.name ?? b.name}</td></tr>)}</tbody>
+          </table>
           {b.status === 'paid' && <p className="note">Show this page or your reference number at the pick-up point, 30 minutes before departure. Bring a valid ID. A receipt was emailed to {b.email.replace(/^(.).*(@.*)$/, '$1•••$2')}.</p>}
           <p className="no-print" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Link className="btn quiet" href="/">Book another trip</Link>
+            <Link className="btn quiet" href={`/trips?${new URLSearchParams({ from: b.pickup, to: b.dropoff })}`}>Book this route again</Link>
           </p>
         </div>
       </article>

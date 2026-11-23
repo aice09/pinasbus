@@ -1,24 +1,31 @@
 'use client';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import type { BusClass, Trip } from '@/lib/catalog';
 import { peso, time12 } from '@/lib/catalog';
+import { seatName } from '@/lib/layouts';
 import { SeatPlan } from './SeatPlan';
 
 const Bus3D = dynamic(() => import('./Bus3D'), { ssr: false, loading: () => <div className="canvas3d" /> });
 
+type Saved = { id: string; full_name: string; label: string };
 type Props = {
   trip: Trip; busClass: BusClass; date: string; taken: string[];
   perSeat: { fare: number; fee: number; perSeat: number };
   initialPickup: string; initialDropoff: string; paymentsReady: boolean;
+  account: { name: string; email: string; phone: string } | null;
+  saved: Saved[];
 };
 
 const MAX_SEATS = 6;
+type Who = { profileId?: string; name: string };
 
-export function SeatPicker({ trip, busClass, date, taken: initialTaken, perSeat, initialPickup, initialDropoff, paymentsReady }: Props) {
+export function SeatPicker({ trip, busClass, date, taken: initialTaken, perSeat, initialPickup, initialDropoff, paymentsReady, account, saved }: Props) {
   const [view, setView] = useState<'3d' | 'plan'>('plan');
   const [taken, setTaken] = useState(new Set(initialTaken));
   const [selected, setSelected] = useState<string[]>([]);
+  const [who, setWho] = useState<Record<string, Who>>({});
   const [pickup, setPickup] = useState(initialPickup);
   const [dropoff, setDropoff] = useState(initialDropoff);
   const [error, setError] = useState('');
@@ -36,6 +43,7 @@ export function SeatPicker({ trip, busClass, date, taken: initialTaken, perSeat,
   };
   const ordered = useMemo(() => busClass.layout.map((l) => l.id).filter((id) => selected.includes(id)), [selected, busClass]);
   const pick = trip.pickups.find((p) => p.station === pickup)!;
+  const usedProfiles = new Set(Object.entries(who).filter(([s]) => ordered.includes(s)).map(([, w]) => w.profileId).filter(Boolean));
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,7 +54,11 @@ export function SeatPicker({ trip, busClass, date, taken: initialTaken, perSeat,
       const res = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ tripId: trip.id, date, pickup, dropoff, seats: ordered, name: f.get('name'), email: f.get('email'), phone: String(f.get('phone') ?? '').replace(/[\s-]/g, '') }),
+        body: JSON.stringify({
+          tripId: trip.id, date, pickup, dropoff, seats: ordered,
+          name: f.get('name'), email: f.get('email'), phone: String(f.get('phone') ?? '').replace(/[\s-]/g, ''),
+          passengers: ordered.map((seat) => ({ seat, name: who[seat]?.name ?? '', ...(who[seat]?.profileId && { profileId: who[seat].profileId }) })),
+        }),
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok && typeof body.checkoutUrl === 'string' && body.checkoutUrl.startsWith('https://')) {
@@ -67,6 +79,7 @@ export function SeatPicker({ trip, busClass, date, taken: initialTaken, perSeat,
 
   const shared = { layout: busClass.layout, taken, selected, onToggle: toggle, restroom };
   const free = busClass.seats - taken.size;
+  const sleeper = busClass.layout[0].berth;
 
   return (
     <div className="picker">
@@ -80,6 +93,7 @@ export function SeatPicker({ trip, busClass, date, taken: initialTaken, perSeat,
             <li><span className="swatch" /> Available ({free})</li>
             <li><span className="swatch sel" /> Your pick</li>
             <li><span className="swatch tak" /> Taken</li>
+            {restroom && <li><span className="swatch cr" /> CR</li>}
           </ul>
         </div>
         {view === '3d' ? <Bus3D {...shared} /> : <SeatPlan {...shared} />}
@@ -100,20 +114,44 @@ export function SeatPicker({ trip, busClass, date, taken: initialTaken, perSeat,
         </label>
         <dl>
           <dt>Pick-up time</dt><dd>{time12(pick.time)}</dd>
-          <dt>{busClass.layout[0].berth ? 'Berths' : 'Seats'}</dt><dd aria-live="polite">{ordered.length ? ordered.join(', ') : 'None yet'}</dd>
-          <dt>Fare per seat</dt><dd>{peso(perSeat.fare)}</dd>
+          <dt>{sleeper ? 'Berths' : 'Seats'}</dt><dd aria-live="polite">{ordered.length ? ordered.join(', ') : 'None yet'}</dd>
+          <dt>Fare per {sleeper ? 'berth' : 'seat'}</dt><dd>{peso(perSeat.fare)}</dd>
           <dt>Convenience fee</dt><dd>{peso(perSeat.fee * ordered.length)}</dd>
         </dl>
         <hr />
         <dl className="total"><dt>Total</dt><dd aria-live="polite">{peso(perSeat.perSeat * ordered.length)}</dd></dl>
+
+        {ordered.length > 0 && (
+          <fieldset className="who">
+            <legend>Who is sitting where</legend>
+            {ordered.map((seat) => (
+              <div key={seat} className="who-row">
+                <span className="who-seat">{seatName(seat)}</span>
+                {saved.length > 0 && (
+                  <select aria-label={`Saved passenger for ${seatName(seat)}`} value={who[seat]?.profileId ?? ''}
+                    onChange={(e) => { const p = saved.find((x) => x.id === e.target.value); setWho((w) => ({ ...w, [seat]: p ? { profileId: p.id, name: p.full_name } : { name: '' } })); }}>
+                    <option value="">Someone else</option>
+                    {saved.map((p) => <option key={p.id} value={p.id} disabled={usedProfiles.has(p.id) && who[seat]?.profileId !== p.id}>{p.full_name}{p.label ? ` (${p.label})` : ''}</option>)}
+                  </select>
+                )}
+                {!who[seat]?.profileId && (
+                  <input aria-label={`Passenger name for ${seatName(seat)}`} placeholder="Full name as on ID" maxLength={80}
+                    value={who[seat]?.name ?? ''} onChange={(e) => setWho((w) => ({ ...w, [seat]: { name: e.target.value } }))} />
+                )}
+              </div>
+            ))}
+            <p className="note">{account ? <>Manage saved passengers in <Link href="/account/passengers">your account</Link>.</> : <><Link href="/login">Sign in</Link> to pick from saved passengers.</>} Blank names use the contact person below.</p>
+          </fieldset>
+        )}
+
         <hr />
-        <label className="field">Full name (as on your ID)<input name="name" required minLength={2} maxLength={80} autoComplete="name" /></label>
-        <label className="field">Email for your ticket<input name="email" type="email" required maxLength={120} autoComplete="email" /></label>
-        <label className="field">Mobile number<input name="phone" type="tel" required placeholder="09171234567" pattern="(\+63|0)9[0-9\s\-]{9,13}" autoComplete="tel" /></label>
+        <label className="field">Contact person (as on ID)<input name="name" required minLength={2} maxLength={80} autoComplete="name" defaultValue={account?.name} /></label>
+        <label className="field">Email for your ticket<input name="email" type="email" required maxLength={120} autoComplete="email" defaultValue={account?.email} /></label>
+        <label className="field">Mobile number<input name="phone" type="tel" required placeholder="09171234567" pattern="(\+63|0)9[0-9\s\-]{9,13}" autoComplete="tel" defaultValue={account?.phone} /></label>
         {error && <p className="error" role="alert">{error}</p>}
         {paymentsReady ? (
           <button className="btn" type="submit" disabled={busy || !ordered.length}>
-            {busy ? 'Opening payment…' : ordered.length ? `Pay ${peso(perSeat.perSeat * ordered.length)}` : 'Choose a seat'}
+            {busy ? 'Opening payment…' : ordered.length ? `Pay ${peso(perSeat.perSeat * ordered.length)}` : `Choose a ${sleeper ? 'berth' : 'seat'}`}
           </button>
         ) : (
           <p className="error">Online payment isn&apos;t switched on yet. You can book this trip at a terminal booth.</p>

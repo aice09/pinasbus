@@ -1,38 +1,26 @@
 'use client';
 import { useState } from 'react';
+import { RouteSelects } from './RouteSelects';
 
-type Props = { pickups: string[]; dropoffs: string[]; today: string; maxDate: string; initial?: { from?: string; to?: string; date?: string } };
+type Props = { pairs: Record<string, string[]>; today: string; maxDate: string; initial?: { from?: string; to?: string; date?: string } };
 
 /** Search form whose choices are echoed live on the destination sign above it. */
-export function SearchForm({ pickups, dropoffs, today, maxDate, initial }: Props) {
-  const [from, setFrom] = useState(initial?.from ?? 'EDSA Cubao');
-  const [to, setTo] = useState(initial?.to ?? 'Naga CBD');
+export function SearchForm({ pairs, today, maxDate, initial }: Props) {
+  const [route, setRoute] = useState({ from: initial?.from ?? '', to: initial?.to ?? '' });
   const [date, setDate] = useState(initial?.date ?? today);
-  const key = from + to;
 
   return (
     <>
-      <div className="sign" role="img" aria-label={`Route: ${from || 'anywhere'} to ${to || 'anywhere'}`}>
-        <div key={key} className="sign-route flip">
-          <span>{from || 'Any terminal'}</span>
+      <div className="sign" role="img" aria-label={`Route: ${route.from || 'any terminal'} to ${route.to || 'anywhere'}`}>
+        <div key={route.from + route.to} className="sign-route flip">
+          <span>{route.from || 'Metro Manila'}</span>
           <span className="arrow" aria-hidden="true">→</span>
-          <span>{to || 'Bicol'}</span>
+          <span>{route.to || 'Bicol'}</span>
         </div>
         <p className="sign-sub">Pick your seat on the bus itself, then pay with GCash, Maya or card.</p>
       </div>
       <form className="search" action="/trips" method="get">
-        <label className="field">From
-          <select name="from" value={from} onChange={(e) => setFrom(e.target.value)}>
-            <option value="">Any terminal</option>
-            {pickups.map((s) => <option key={s}>{s}</option>)}
-          </select>
-        </label>
-        <label className="field">To
-          <select name="to" value={to} onChange={(e) => setTo(e.target.value)}>
-            <option value="">Anywhere</option>
-            {dropoffs.map((s) => <option key={s}>{s}</option>)}
-          </select>
-        </label>
+        <RouteSelects pairs={pairs} from={route.from} to={route.to} onChange={(from, to) => setRoute({ from, to })} />
         <label className="field">Travel date
           <input type="date" name="date" value={date} min={today} max={maxDate} required onChange={(e) => setDate(e.target.value)} />
         </label>

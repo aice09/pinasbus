@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { BUS_CLASSES, isBookable, price, time12, tripById } from '@/lib/catalog';
+import { BUS_CLASSES, isBookable, price, time12 } from '@/lib/catalog';
+import { tripById } from '@/lib/routes';
+import { currentUser } from '@/lib/auth';
+import { q } from '@/lib/db';
 import { attachCheckout, cancelHold, hold, SeatsTaken, takenSeats } from '@/lib/bookings';
 import { createCheckout, paymentsConfigured } from '@/lib/paymongo';
 import { allow, clientIp } from '@/lib/ratelimit';
@@ -14,11 +17,15 @@ const Body = z.object({
   name: z.string().trim().min(2).max(80),
   email: z.string().trim().email().max(120),
   phone: z.string().trim().regex(/^(\+63|0)9\d{9}$/, 'Use a PH mobile number, e.g. 09171234567'),
+  passengers: z.array(z.object({ seat: z.string().max(5), name: z.string().trim().max(80), profileId: z.string().uuid().optional() })).max(6).default([]),
 });
 
 const bad = (error: string, status = 400) => NextResponse.json({ error }, { status });
 
 export async function POST(req: NextRequest) {
+  // Same-origin only: the session cookie must not let another site start bookings.
+  const origin = req.headers.get('origin');
+  if (origin && origin !== new URL(process.env.PUBLIC_BASE_URL ?? req.nextUrl.origin).origin) return bad('Bad origin.', 403);
   if (!allow('book:' + clientIp(req), 10, 60_000)) return bad('Too many attempts. Wait a minute and try again.', 429);
   if (!paymentsConfigured()) return bad('Online payment is not available yet. Book at a terminal booth.', 503);
 
@@ -26,8 +33,8 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return bad(parsed.error.issues[0]?.message ?? 'Check the form and try again.');
   const b = parsed.data;
 
-  const trip = tripById(b.tripId);
-  if (!trip) return bad('That trip no longer exists.', 404);
+  const trip = await tripById(b.tripId);
+  if (!trip || !trip.active) return bad('That trip is not running.', 404);
   if (!isBookable(trip, b.date)) return bad('Online booking for this departure is closed.');
   const pickup = trip.pickups.find((p) => p.station === b.pickup);
   if (!pickup || !trip.dropoffs.includes(b.dropoff)) return bad('Choose a pick-up and drop-off on this route.');
@@ -35,12 +42,21 @@ export async function POST(req: NextRequest) {
   const seats = [...new Set(b.seats)];
   if (seats.length !== b.seats.length || !seats.every((s) => cls.layout.some((l) => l.id === s))) return bad('Choose seats from the seat plan.');
 
+  const user = await currentUser();
+  // Name per seat: a saved profile (owned by this user) or a typed name; the lead passenger fills any gap.
+  const profiles = user ? await q<{ id: string; full_name: string }>('select id, full_name from passengers where user_id = $1', [user.id]) : [];
+  const passengers = seats.map((seat) => {
+    const given = b.passengers.find((x) => x.seat === seat);
+    const profile = given?.profileId ? profiles.find((x) => x.id === given.profileId) : undefined;
+    return { seat, name: profile?.full_name ?? (given?.name || b.name) };
+  });
   const p = price(trip.fare, seats.length);
   let booking;
   try {
     booking = await hold({
       trip_id: trip.id, travel_date: b.date, pickup: b.pickup, dropoff: b.dropoff, seats,
       name: b.name, email: b.email, phone: b.phone, fare_centavos: p.fare, fee_centavos: p.fee, total_centavos: p.total,
+      user_id: user?.id ?? null, passengers,
     });
   } catch (e) {
     if (e instanceof SeatsTaken) return NextResponse.json({ error: 'Someone just took one of those seats. Pick again.', taken: await takenSeats(trip.id, b.date) }, { status: 409 });
