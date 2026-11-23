@@ -9,6 +9,8 @@ import { PASSENGER_KINDS } from './layouts.ts';
 
 const API = 'https://generativelanguage.googleapis.com/v1beta';
 export const assistantEnabled = () => Boolean(process.env.GEMINI_API_KEY);
+/** Models that recently failed (503/429/timeout) are skipped for 5 minutes so answers don't wait on them each step. */
+const coolUntil = new Map<string, number>();
 
 type Part = { text?: string; functionCall?: { name: string; args: Record<string, unknown> }; functionResponse?: { name: string; response: unknown } };
 type Content = { role: 'user' | 'model'; parts: Part[] };
@@ -92,13 +94,14 @@ export async function ask(history: { role: 'user' | 'model'; text: string }[]): 
   for (let round = 0; round < 5; round++) {
     const payload = JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM() }] }, contents, tools: TOOLS, generationConfig: { temperature: 0.3, maxOutputTokens: 900 } });
     let res: Response | null = null, body: { candidates?: { content?: { parts?: Part[] } }[]; error?: { message?: string } } = {};
-    for (const [n, model] of models.flatMap((m) => [m, m]).entries()) {
+    const ready = models.filter((m) => (coolUntil.get(m) ?? 0) < Date.now());
+    for (const model of ready.length ? ready : models) {
       try {
-        res = await fetch(`${API}/models/${model}:generateContent`, { method: 'POST', signal: AbortSignal.timeout(15_000), headers: { 'content-type': 'application/json', 'x-goog-api-key': key }, body: payload });
+        res = await fetch(`${API}/models/${model}:generateContent`, { method: 'POST', signal: AbortSignal.timeout(12_000), headers: { 'content-type': 'application/json', 'x-goog-api-key': key }, body: payload });
         body = await res.json().catch(() => ({}));
-      } catch { res = null; body = { error: { message: `${model} timed out` } }; continue; } // overloaded models sometimes hang: try the next
+      } catch { res = null; body = { error: { message: `${model} timed out` } }; coolUntil.set(model, Date.now() + 300_000); continue; } // overloaded models sometimes hang
       if (res.ok || ![404, 429, 500, 503].includes(res.status)) break;
-      await new Promise((r) => setTimeout(r, 600 * (n % 2 + 1)));
+      coolUntil.set(model, Date.now() + 300_000);
     }
     if (!res?.ok) throw new Error(`Gemini ${res?.status}: ${JSON.stringify(body.error?.message ?? body).slice(0, 200)}`);
     const parts: Part[] = body.candidates?.[0]?.content?.parts ?? [];

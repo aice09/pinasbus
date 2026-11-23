@@ -11,6 +11,6 @@ spec:
   prefix: /
   rewrite: ""
   service: {{ $.Release.Name }}.{{ $.Release.Namespace }}:80
-  timeout_ms: 30000
+  timeout_ms: {{ $.Values.mapping.timeoutMs | default 60000 }}
 {{- end }}
 {{- end }}

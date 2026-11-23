@@ -15,6 +15,7 @@ publicBaseUrl: ""    # defaults to https://<host>
 # Emissary Mapping only. Never add an Emissary Host for a name a wildcard Host already covers.
 mapping:
   enabled: true
+  timeoutMs: 60000   # the AI assistant can take tens of seconds when its first model is busy
 
 payments:
   # Secret with PAYMONGO_SECRET_KEY and PAYMONGO_WEBHOOK_SECRET. Without it the site runs but online payment is off.
