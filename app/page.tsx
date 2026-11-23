@@ -15,8 +15,8 @@ export default async function Home() {
   const { date: today } = manilaNow();
   const [pairs, regions, routes, operators, [showcase]] = await Promise.all([
     network(), stationRegions(),
-    q<{ stops: Stop[]; org: string; verified: boolean; walkup: boolean }>(
-      `select r.stops, o.name org, not (r.data_sources @> '[{"verified": false}]') verified, coalesce((c.rules->>'bookable')::boolean, true) = false walkup
+    q<{ stops: Stop[]; itinerary: { type: string; name: string }[]; org: string; verified: boolean; walkup: boolean }>(
+      `select r.stops, r.itinerary, o.name org, not (r.data_sources @> '[{"verified": false}]') verified, coalesce((c.rules->>'bookable')::boolean, true) = false walkup
          from routes r join organizations o on o.id = r.org_id left join categories c on c.id = r.category_id where r.active and o.status = 'active'`),
     q<{ slug: string; name: string; schedules: number; is_demo: boolean }>(
       `select o.slug, o.name, o.is_demo, (select count(*) from schedules s where s.org_id = o.id and s.active)::int schedules
@@ -40,6 +40,15 @@ export default async function Home() {
       }
     });
   }
+  // "via SLEX, Maharlika": the roads a route board would paint, from the first route serving each pair.
+  const via: Record<string, string> = {};
+  const short = (n: string) => n.match(/\(([^)]+)\)/)?.[1] ?? n.replace(/^Pan-Philippine Highway.*/, 'Maharlika').replace(/ (Expressway|Highway|Boulevard)$/, '');
+  for (const r of routes) {
+    const roads = [...new Set(r.itinerary.filter((l) => l.type !== 'city').map((l) => (l.type === 'ferry' ? 'ferry' : short(l.name))))].slice(0, 3).join(', ');
+    if (!roads) continue;
+    r.stops.forEach((a, i) => { if (a.boarding) for (const b of r.stops.slice(i + 1)) if (b.alighting) via[`${a.name}|${b.name}`] ??= roads; });
+  }
+  const placeName = (s: string) => s.replace(/^(Partas|Victory Liner)\s+/, '').replace(/ CBD$/, '');
   const popular = [...best].sort((a, b) => b[1].orgs.size - a[1].orgs.size || a[1].min - b[1].min).slice(0, 8);
   const places = Object.fromEntries(allPlaces().map((p) => [p.key, p]));
   const departures = operators.reduce((a, o) => a + o.schedules, 0);
@@ -47,14 +56,7 @@ export default async function Home() {
   return (
     <main className="home">
       <HeroSearch pairs={pairs} regions={regions} places={places} today={today} maxDate={addDays(today, BOOKING_WINDOW_DAYS)}
-        initial={{ from: pairs['EDSA Cubao'] ? 'EDSA Cubao' : '', to: '' }} fallback={DEFAULT_PLACE} />
-
-      <section className="stripe" aria-label="At a glance">
-        <div><strong>{operators.length}</strong><span>bus companies</span></div>
-        <div><strong>{departures}</strong><span>departures a day</span></div>
-        <div><strong>3D</strong><span>seat selection</span></div>
-        <div><strong>♿ SC</strong><span>priority seats built in</span></div>
-      </section>
+        via={via} initial={{ from: pairs['EDSA Cubao'] ? 'EDSA Cubao' : '', to: '' }} fallback={DEFAULT_PLACE} />
 
       <section className="section" aria-labelledby="pop-h">
         <div className="section-head"><h2 id="pop-h">Where to next</h2><Link href="/routes">All routes</Link></div>
@@ -65,7 +67,7 @@ export default async function Home() {
               <li key={region}>
                 <Link href={`/trips?${new URLSearchParams({ to: d.dest, date: today })}`} className="dest">
                   <Image src={p.src} alt="" fill sizes="(max-width: 700px) 100vw, 25vw" className="dest-img" />
-                  <span className="dest-text"><strong>{d.dest}</strong><span>from {peso(d.min * 100)}{d.indicative ? ' (indicative)' : ''}</span><span className="dest-orgs">{[...d.orgs].slice(0, 2).join(', ')}{d.orgs.size > 2 ? ` +${d.orgs.size - 2}` : ''}</span></span>
+                  <span className="dest-text"><strong>{placeName(d.dest)}</strong><span>from {peso(d.min * 100)}{d.indicative ? ', indicative' : ''}, {d.orgs.size} {d.orgs.size === 1 ? 'company' : 'companies'}</span></span>
                 </Link>
               </li>
             );
@@ -77,24 +79,20 @@ export default async function Home() {
         <div className="showcase-copy">
           <h2 id="seat-h">Book the ride. Pick the exact seat.</h2>
           <p>Turn the real bus around and tap your seat. On sleepers, lift the upper deck to see the lower berths; see where the CR is before you pay. Blue ♿, amber SC and purple P seats are held for passengers who need them.</p>
-          <ul className="ticks">
-            <li>GCash, Maya, cards, or a PINASBUS transport card</li>
-            <li>Senior citizen, PWD and student fares with ID</li>
-            <li>Bags registered and tracked with a QR tag</li>
-            <li>Live bus map with arrival estimate</li>
-          </ul>
+          <p>Pay with GCash, Maya, a card or a PINASBUS transport card. Register your bags on the ticket, then follow the bus on a live map.</p>
           <p><Link className="btn" href="/trips">Find a trip</Link></p>
         </div>
         {showcase && <FleetPreview layout={showcase.seats} restroom start3d />}
       </section>
 
       <section className="section" aria-labelledby="ops-h">
-        <div className="section-head"><h2 id="ops-h">Bus companies</h2><Link href="/operators">Compare</Link></div>
-        <ul className="opgrid">
+        <div className="section-head"><h2 id="ops-h">{operators.length} bus companies, {departures} departures a day</h2><Link href="/operators">Compare</Link></div>
+        <ul className="oplist">
           {operators.map((o) => (
-            <li key={o.slug}><Link href={`/operators/${o.slug}`} className="opcard"><strong>{o.name}</strong><span>{o.schedules} departures a day</span>{o.is_demo && <span className="chip plain">Not affiliated, public data</span>}</Link></li>
+            <li key={o.slug}><Link href={`/operators/${o.slug}`}><strong>{o.name}</strong><span>{o.schedules} a day</span></Link></li>
           ))}
         </ul>
+        <p className="note">Listed from public timetables for this demonstration; none of these companies is affiliated with PINASBUS.</p>
       </section>
 
       <section className="section band" aria-labelledby="padala-h">

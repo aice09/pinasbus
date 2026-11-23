@@ -22,7 +22,7 @@ export function RouteLine({ stops, from, to, departsAt, color = '#1f4d3a', title
             <li key={k} className={(onLeg ? 'leg ' : '') + (served ? '' : 'skip ') + (k === i ? 'from ' : '') + (k === j ? 'to' : '')}>
               <span className="rline-dot" aria-hidden="true" />
               <span className="rline-name">{s.name}</span>
-              <span className="rline-meta">{served ? (t ?? '') : 'does not stop'}{k === i ? ' · you board' : k === j ? ' · you get off' : ''}</span>
+              <span className="rline-meta">{served ? (t ?? '') : 'does not stop'}{k === i ? ', you board' : k === j ? ', you get off' : ''}</span>
             </li>
           );
         })}

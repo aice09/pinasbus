@@ -11,7 +11,7 @@ const display = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-
 const body = Atkinson_Hyperlegible({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-body' });
 
 export const metadata: Metadata = {
-  title: { default: 'PINASBUS: bus tickets across the Philippines', template: '%s · PINASBUS' },
+  title: { default: 'PINASBUS: bus tickets across the Philippines', template: '%s | PINASBUS' },
   description: 'One place to compare and book provincial and intercity buses in the Philippines: pick your seat on a 3D bus, pay with GCash, Maya or card.',
 };
 

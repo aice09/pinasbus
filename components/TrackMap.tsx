@@ -49,7 +49,7 @@ export function TrackMap({ tripId, height = 460 }: { tripId: string; height?: nu
       for (const s of full.stops) {
         const el = document.createElement('div');
         el.className = 'map-stop'; el.title = s.name;
-        new ml.Marker({ element: el }).setLngLat(s.lngLat).setPopup(new ml.Popup({ offset: 10 }).setText(`${s.name}${s.boarding ? ' · pick-up' : ''}${s.alighting ? ' · drop-off' : ''}`)).addTo(m);
+        new ml.Marker({ element: el }).setLngLat(s.lngLat).setPopup(new ml.Popup({ offset: 10 }).setText(`${s.name}${s.boarding && s.alighting ? ': pick-up and drop-off' : s.boarding ? ': pick-up' : ': drop-off'}`)).addTo(m);
       }
       const el = document.createElement('div');
       el.className = 'map-bus'; el.setAttribute('aria-hidden', 'true');
