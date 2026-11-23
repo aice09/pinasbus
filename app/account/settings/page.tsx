@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Email } from '@/components/Email';
 import { changePassword, deleteAccount, saveProfile } from '@/app/actions/account';
 import { requireUser } from '@/lib/auth';
 import { ActionForm } from '@/components/ActionForm';
@@ -15,7 +16,7 @@ export default async function Settings() {
         <ActionForm action={saveProfile} submit="Save profile">
           <label className="field">Full name<input name="name" required minLength={2} maxLength={80} defaultValue={u.name} /></label>
           <label className="field">Mobile number<input name="phone" type="tel" defaultValue={u.phone} /></label>
-          <p className="note">Email: {u.email}. To change it, contact us.</p>
+          <p className="note">Email: <Email value={u.email} />. To change it, contact us.</p>
         </ActionForm>
       </section>
       <section className="panel" aria-labelledby="pw-h">

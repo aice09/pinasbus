@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Email } from '@/components/Email';
 import type { Metadata } from 'next';
 import { markRefunded } from '@/app/actions/admin';
 import { requireAdmin } from '@/lib/auth';
@@ -41,7 +42,7 @@ export default async function Bookings({ searchParams }: { searchParams: Promise
                 <td>{b.travel_date}<br /><span className="note">{b.trip_id}</span></td>
                 <td>{b.pickup} → {b.dropoff}</td>
                 <td>{b.seats.join(', ')}</td>
-                <td>{b.name}<br /><span className="note">{b.email}<br />{b.phone}</span></td>
+                <td>{b.name}<br /><span className="note"><Email value={b.email} /><br />{b.phone}</span></td>
                 <td className="num">{peso(b.total_centavos)}</td>
                 <td><span className={`status ${b.status === 'refunded' ? 'expired' : b.status}`}>{b.status.replace('_', ' ')}</span></td>
                 <td>{(b.status === 'needs_refund' || b.status === 'paid') && (

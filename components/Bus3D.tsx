@@ -70,7 +70,7 @@ function Tag({ text, position, scale = 1 }: { text: string; position: [number, n
     g.fillText(text, 256, 68);
     return new THREE.CanvasTexture(cv);
   }, [text]);
-  return <sprite position={position} scale={[1.6 * scale, 0.4 * scale, 1]}><spriteMaterial map={tex} depthTest={false} /></sprite>;
+  return <sprite position={position} scale={[3.4 * scale, 0.85 * scale, 1]}><spriteMaterial map={tex} depthTest={false} /></sprite>;
 }
 
 function SeatMesh({ seat, pos, state, hovered, onHover, onToggle }: {
@@ -156,14 +156,14 @@ function Bus({ layout, taken, selected, onToggle, restroom, lift, hover, setHove
         </mesh>
       )}
       {restroom && (
-        <Tag text="CR" scale={0.6} position={[sleeper ? place({ id: 'cr', x: cols - 1, row: rows - 1, deck: 0, berth: true })[0] : (width / 2 - 0.4), 1.9, length / 2 - (sleeper ? pitch / 2 + 0.3 : 0.4)]} />
+        <Tag text="CR" scale={0.5} position={[sleeper ? place({ id: 'cr', x: cols - 1, row: rows - 1, deck: 0, berth: true })[0] : (width / 2 - 0.4), 1.9, length / 2 - (sleeper ? pitch / 2 + 0.3 : 0.4)]} />
       )}
       <Tag text="FRONT" scale={0.7} position={[0, height + 0.5, -length / 2]} />
       {layout.filter((s) => s.deck === 0).map(render)}
-      {sleeper && <Tag text="Lower deck (L)" position={[-width / 2 - 1.1, 0.5, z0]} />}
+      {sleeper && <Tag text="Lower deck (L)" position={[-width / 2 - 2, 0.5, z0 + pitch]} />}
       <group ref={upper}>
         {layout.filter((s) => s.deck === 1).map(render)}
-        {sleeper && <Tag text="Upper deck (U)" position={[-width / 2 - 1.1, 1.5, z0]} />}
+        {sleeper && <Tag text="Upper deck (U)" position={[-width / 2 - 2, 1.6, z0]} />}
       </group>
     </group>
   );

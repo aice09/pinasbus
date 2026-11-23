@@ -43,7 +43,7 @@ Open a shipment to see sender and recipient details and move it along: **Receive
 
 ## Users and messages
 
-**Users** lists accounts with their paid bookings and saved passengers. **Messages** is the contact-form inbox: reply by email (the address is a mailto link), then **Mark as done**.
+**Users** lists accounts with their paid bookings and saved passengers. **Messages** is the contact-form inbox: reply from the support mailbox to the address shown, then **Mark as done**.
 
 ## Password resets
 

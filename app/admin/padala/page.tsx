@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Email } from '@/components/Email';
 import type { Metadata } from 'next';
 import { saveRates, updateShipment } from '@/app/actions/admin';
 import { requireAdmin } from '@/lib/auth';
@@ -35,7 +36,7 @@ export default async function AdminPadala({ searchParams }: { searchParams: Prom
                 <span className="mono">{s.ref}</span> {s.origin} → {s.destination}, {s.weight_kg} kg
                 <span className={`status ${s.status === 'cancelled' ? 'expired' : s.status === 'claimed' ? 'paid' : 'pending'}`}>{STATUS_TEXT[s.status]}</span>
               </summary>
-              <p className="meta">From {s.sender_name} ({s.sender_phone}, {s.sender_email}) to {s.recipient_name} ({s.recipient_phone}). {s.description}. Declared {peso(s.declared_value_centavos)}, fee {peso(s.fee_centavos)}. <Link href={`/padala/track?ref=${s.ref}`}>Timeline</Link></p>
+              <p className="meta">From {s.sender_name} ({s.sender_phone}, <Email value={s.sender_email} />) to {s.recipient_name} ({s.recipient_phone}). {s.description}. Declared {peso(s.declared_value_centavos)}, fee {peso(s.fee_centavos)}. <Link href={`/padala/track?ref=${s.ref}`}>Timeline</Link></p>
               {s.status !== 'pending_payment' && s.status !== 'cancelled' && (
                 <ActionForm action={updateShipment} submit="Update status" className="inline-form">
                   <input type="hidden" name="id" value={s.id} />

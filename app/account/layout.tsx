@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Email } from '@/components/Email';
 import { signOut } from '@/app/actions/auth';
 import { requireUser } from '@/lib/auth';
 
@@ -9,7 +10,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
   return (
     <main className="dash">
       <aside className="side">
-        <p className="side-who"><strong>{u.name}</strong><span>{u.email}</span></p>
+        <p className="side-who"><strong>{u.name}</strong><span><Email value={u.email} /></span></p>
         <nav aria-label="Your account">
           <Link href="/account">Overview</Link>
           <Link href="/account/trips">Trips</Link>

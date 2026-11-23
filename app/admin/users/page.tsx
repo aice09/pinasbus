@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Email } from '@/components/Email';
 import { setRole } from '@/app/actions/admin';
 import { requireAdmin } from '@/lib/auth';
 import { q } from '@/lib/db';
@@ -25,7 +26,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
             {rows.map((u) => (
               <tr key={u.id}>
                 <td>{u.name}<br /><span className="note">{u.phone}</span></td>
-                <td>{u.email}</td>
+                <td><Email value={u.email} /></td>
                 <td>{u.created_at.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</td>
                 <td className="num">{u.bookings}</td>
                 <td className="num">{u.passengers}</td>
