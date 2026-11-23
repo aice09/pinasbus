@@ -52,3 +52,42 @@ Choose drop-off and claim terminals (only pairs a bus serves are offered). Fill 
 ## Refunds
 
 A payment that arrives after your hold expired gets the seats back if they are still free. If they were resold, the ticket says **Paid, but the seats were taken** and the company refunds you. For anything else, use **Contact us** with your reference.
+
+## Baggage
+
+On a paid ticket, open **Register bags**. For each bag, choose its owner, describe it, and give its type and weight. The company's allowance applies: often 20 kg per seat and up to 3 bags per seat. Anything over is charged per kg at the terminal check-in. A bag can't exceed the bus's per-bag limit or the space left in its hold. Each bag gets a tag code (`BG…`). Staff scan it at each step:
+
+> checked in → weighed → tagged → loaded → in transit → unloaded → ready for collection → released
+
+You see each step on the ticket and in **Account → Baggage**, and get a notification when a bag is loaded, ready, released, or has a problem.
+
+## Tracking your bus
+
+**Track this bus** on a paid ticket opens a live map with:
+- the bus position;
+- speed, average and top speed;
+- distance travelled and remaining;
+- arrival estimate and next stop;
+- ferry status on routes with a crossing.
+
+Positions come from the crew's phone or the bus's GPS. When neither is reporting, the map shows a **simulated** position, clearly labelled, based on the timetable.
+
+## City buses
+
+City routes (for example the EDSA Carousel) are walk-up: you pay on board and can't reserve a seat. Their page shows the line like a train map: every stop in order, your leg highlighted, times, and the bus on the map.
+
+## Transport cards
+
+In **Account → Transport cards**, link a PINASBUS card with its 16-digit number. You can then:
+- load it with GCash, Maya or a bank card;
+- see its balance, history and the trips paid with it;
+- pay fares with it (choose the card under **Pay with**).
+
+Refunds of card-paid tickets go back to the card.
+
+## Notifications, security and help
+
+- The bell shows booking, payment, baggage, ferry, delay and card notifications. Important ones are also emailed.
+- **Account → Security** turns on two-step sign-in with an authenticator app. It is required for administrator and finance roles.
+- **Forgot your password?** on the sign-in page emails a reset link that works for 30 minutes, once.
+- **Ask PINASBUS** (bottom-right) is an AI assistant. It answers from live schedules and can find trips and fares, check a ticket by reference, or say where your bus is. It can't book or refund, and the trip and ticket pages are authoritative.

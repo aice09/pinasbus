@@ -9,7 +9,7 @@ import { OrgField } from '@/components/OrgField';
 
 export const metadata: Metadata = { title: 'Routes' };
 
-type Route = { id: string; code: string; name: string; category_id: string | null; stops: Stop[]; itinerary: Leg[]; mode: string; active: boolean; data_sources: Source[]; schedules: number };
+type Route = { id: string; code: string; name: string; min_fare: number; category_id: string | null; stops: Stop[]; itinerary: Leg[]; mode: string; active: boolean; data_sources: Source[]; schedules: number };
 
 export default async function Routes({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -28,8 +28,9 @@ export default async function Routes({ params }: { params: Promise<{ slug: strin
         <label className="field">Route code<input name="code" required maxLength={20} defaultValue={r?.code} /></label>
         <label className="field">Name<input name="name" required maxLength={120} defaultValue={r?.name} placeholder="Cubao – Naga via SLEX" /></label>
         <label className="field">Category<select name="category_id" defaultValue={r?.category_id ?? 'provincial'}>{cats.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
-        <label className="check"><input type="checkbox" name="active" defaultChecked={r?.active ?? true} /> Running</label>
+        <label className="field">Minimum fare (PHP)<input name="min_fare" type="number" min="0" defaultValue={r?.min_fare ?? 0} /></label>
       </div>
+      <label className="check"><input type="checkbox" name="active" defaultChecked={r?.active ?? true} /> Running</label>
       <div className="row2">
         <label className="field">Stops in order: station | minutes after departure | fare from the first stop (PHP) | P pick-up, D drop-off
           <textarea name="stops" rows={6} required defaultValue={r?.stops.map((s) => `${s.name} | ${s.offset_min ?? ''} | ${s.fare} | ${s.boarding ? 'P' : ''}${s.alighting ? 'D' : ''}`).join('\n')}

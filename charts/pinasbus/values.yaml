@@ -54,6 +54,21 @@ metrics:
     namespace: prometheus      # where the Grafana sidecar looks for ConfigMaps labelled grafana_dashboard=1
     folder: BikolBus
 
+# Two-step sign-in (authenticator app) for platform admins and company/shipping/card admins and finance officers.
+mfaRequired: true
+
+ai:
+  # Gemini key and model, from an existing Secret (keys GEMINI_API_KEY, GEMINI_MODEL). Without it the assistant is hidden.
+  existingSecret: bikolbus-ai
+
+mail:
+  # Mail goes to the bundled Mailpit (a catch-all inbox for development and demos) unless smtpUrl points at a real relay.
+  smtpUrl: ""
+  from: "PINASBUS <no-reply@pinasbus.phlopentech.org>"
+mailpit:
+  enabled: true
+  image: docker.io/axllent/mailpit:v1.33.0
+
 networkPolicy:
   enabled: true
   ingressNamespace: emissary

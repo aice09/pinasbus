@@ -22,7 +22,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           <label className="field">Password<input name="password" type="password" required autoComplete="current-password" /></label>
         </ActionForm>
       </div>
-      <p className="note">New here? <Link href={`/signup?next=${encodeURIComponent(safeNext(sp.next))}`}>Create an account</Link>. Forgot your password? <Link href="/contact">Contact us</Link> and we will reset it.</p>
+      <p className="note">New here? <Link href={`/signup?next=${encodeURIComponent(safeNext(sp.next))}`}>Create an account</Link>. <Link href="/forgot">Forgot your password?</Link></p>
     </main>
   );
 }

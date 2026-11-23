@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { orgCtx, roleName } from '@/lib/tenancy';
 
 export const dynamic = 'force-dynamic';
@@ -6,11 +7,15 @@ export const dynamic = 'force-dynamic';
 export default async function OpsLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const c = await orgCtx(slug);
+  if (c.org.kind === 'shipping_operator') redirect(`/ship/${slug}`);
+  if (c.org.kind === 'card_issuer') redirect(`/cards/${slug}`);
   const base = `/ops/${slug}`;
   const nav: [string, string, boolean][] = [
     ['', 'Overview', true],
     ['/trips', c.can('trips.view') ? 'Trips and dispatch' : 'My trips', c.can('trips.view') || c.can('trips.view_assigned')],
     ['/bookings', 'Bookings', c.can('bookings.view')],
+    ['/baggage', 'Baggage', c.can('baggage.manage')],
+    ['/live', 'Live tracking', c.can('tracking.view')],
     ['/fleet', 'Fleet', c.can('fleet.view')],
     ['/layouts', 'Seat layouts', c.can('fleet.view')],
     ['/routes', 'Routes', c.can('routes.manage') || c.can('trips.view')],

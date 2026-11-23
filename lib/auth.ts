@@ -15,7 +15,7 @@ export type Membership = { org_id: string; role: Role; org_name: string; org_slu
 export type User = {
   id: string; email: string; name: string; phone: string; created_at: Date;
   platform_role: 'none' | 'platform_admin'; passenger_category: PassengerCategory; id_type: string; id_last4: string;
-  must_change_password: boolean; memberships: Membership[];
+  must_change_password: boolean; mfa_enabled: boolean; memberships: Membership[];
 };
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -45,7 +45,7 @@ export const currentUser = cache(async (): Promise<User | null> => {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token || token.length > 100) return null;
   const rows = await q<Omit<User, 'memberships'>>(
-    `select u.id, u.email, u.name, u.phone, u.created_at, u.platform_role, u.passenger_category, u.id_type, u.id_last4, u.must_change_password
+    `select u.id, u.email, u.name, u.phone, u.created_at, u.platform_role, u.passenger_category, u.id_type, u.id_last4, u.must_change_password, u.mfa_enabled
        from sessions s join users u on u.id = s.user_id
       where s.token_hash = $1 and s.expires_at > now() and not u.disabled`, [sha(token)]);
   if (!rows[0]) return null;
@@ -64,8 +64,31 @@ export async function requireUser(next = '/account') {
 export async function requirePlatformAdmin() {
   const u = await requireUser('/platform');
   if (u.platform_role !== 'platform_admin') redirect('/account');
+  requireMfa(u);
   return u;
 }
+
+/** Privileged roles must use two-step sign-in (set MFA_REQUIRED=false only for local development). */
+export const PRIVILEGED_ROLES = ['company_admin', 'finance_officer', 'shipping_admin', 'card_admin'];
+export function requireMfa(u: User) {
+  if (process.env.MFA_REQUIRED !== 'false' && !u.mfa_enabled) redirect('/account/security?required=1');
+}
+
+const MFA_COOKIE = 'pb_mfa';
+/** First factor passed: park the user in a 10-minute challenge until the authenticator code arrives. */
+export async function startMfaChallenge(userId: string, next: string) {
+  const token = randomBytes(32).toString('base64url');
+  await q(`insert into mfa_challenges (token_hash, user_id, next, expires_at) values ($1,$2,$3, now() + interval '10 minutes')`, [sha(token), userId, next]);
+  (await cookies()).set(MFA_COOKIE, token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 600 });
+}
+export async function takeMfaChallenge() {
+  const token = (await cookies()).get(MFA_COOKIE)?.value;
+  if (!token) return null;
+  const [c] = await q<{ user_id: string; next: string; email: string; mfa_secret: string }>(
+    `select c.user_id, c.next, u.email, u.mfa_secret from mfa_challenges c join users u on u.id = c.user_id where c.token_hash = $1 and c.expires_at > now()`, [sha(token)]);
+  return c ? { ...c, done: async () => { await q('delete from mfa_challenges where token_hash = $1', [sha(token)]); (await cookies()).delete(MFA_COOKIE); } } : null;
+}
+export const hashToken = sha;
 
 /** Only allow same-site relative redirects after sign-in. */
 export const safeNext = (n: unknown) => (typeof n === 'string' && /^\/(?!\/)[\w\-/?=&%.]*$/.test(n) ? n : '/account');

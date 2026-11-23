@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { seedDemo } from './demo.ts';
+import { DEMO_VERSION, resetDemoData, seedDemo } from './demo.ts';
 
 // Keep DATE columns as 'YYYY-MM-DD' strings; a JS Date would shift them by the server's timezone.
 pg.types.setTypeParser(1082, (v: string) => v);
@@ -303,6 +303,188 @@ const MIGRATIONS: string[] = [
     ip text not null default ''
   );
   create index audit_org on audit_log (org_id, at desc);`,
+
+  `-- phase 2: baggage
+  create table bags (
+    id uuid primary key default gen_random_uuid(),
+    tag text unique not null,
+    org_id uuid not null references organizations(id) on delete cascade,
+    booking_id uuid not null references bookings(id) on delete cascade,
+    trip_id uuid not null references trips(id) on delete cascade,
+    passenger text not null,
+    description text not null,
+    category text not null default 'regular' check (category in ('regular', 'fragile', 'oversized', 'sports', 'perishable')),
+    weight_kg numeric(6,2) not null check (weight_kg > 0),
+    fee_centavos integer not null default 0,
+    fee_paid boolean not null default false,
+    status text not null default 'registered',
+    created_at timestamptz not null default now()
+  );
+  create index bags_trip on bags (trip_id);
+  create index bags_booking on bags (booking_id);
+  create table bag_events (
+    id bigserial primary key,
+    bag_id uuid not null references bags(id) on delete cascade,
+    status text not null,
+    location text not null default '',
+    note text not null default '',
+    actor_id uuid references users(id) on delete set null,
+    created_at timestamptz not null default now()
+  );
+  -- phase 3: tracking
+  alter table stations add column coord_source text not null default '';
+  alter table routes add column geometry jsonb;
+  alter table routes add column min_fare integer not null default 0 check (min_fare >= 0);
+  create table gps_points (
+    id bigserial primary key,
+    trip_id uuid not null references trips(id) on delete cascade,
+    at timestamptz not null default now(),
+    lat double precision not null, lng double precision not null,
+    speed_kph double precision, heading double precision,
+    source text not null check (source in ('device', 'hardware')),
+    actor_id uuid references users(id) on delete set null
+  );
+  create index gps_trip_at on gps_points (trip_id, at desc);
+  create table trip_alerts (
+    id bigserial primary key,
+    trip_id uuid not null references trips(id) on delete cascade,
+    org_id uuid not null references organizations(id) on delete cascade,
+    kind text not null check (kind in ('speeding', 'deviation', 'unusual_stop')),
+    detail text not null,
+    at timestamptz not null default now(),
+    acknowledged boolean not null default false
+  );
+  create index trip_alerts_org on trip_alerts (org_id, at desc);
+  -- phase 4: ferries
+  create table vessels (
+    id uuid primary key default gen_random_uuid(),
+    org_id uuid not null references organizations(id) on delete cascade,
+    name text not null,
+    registration text not null default '',
+    vehicle_slots integer not null default 10 check (vehicle_slots > 0),
+    passenger_capacity integer,
+    status text not null default 'in_service' check (status in ('in_service', 'maintenance', 'retired')),
+    unique (org_id, name)
+  );
+  create table sailings (
+    id uuid primary key default gen_random_uuid(),
+    org_id uuid not null references organizations(id) on delete cascade,
+    vessel_id uuid not null references vessels(id) on delete cascade,
+    from_port text not null,
+    to_port text not null,
+    departs_at timestamptz not null,
+    arrives_at timestamptz not null,
+    boarding_minutes integer not null default 60,
+    status text not null default 'scheduled' check (status in ('scheduled', 'boarding', 'sailing', 'arrived', 'delayed', 'cancelled')),
+    note text not null default '',
+    unique (vessel_id, departs_at)
+  );
+  create index sailings_ports on sailings (from_port, departs_at);
+  create table ferry_links (
+    id uuid primary key default gen_random_uuid(),
+    trip_id uuid not null references trips(id) on delete cascade,
+    sailing_id uuid not null references sailings(id) on delete cascade,
+    reference text unique not null,
+    qr_token text unique not null,
+    status text not null default 'reserved' check (status in ('reserved', 'approaching', 'waiting', 'boarding', 'on_vessel', 'sailing', 'disembarked', 'continuing', 'cancelled')),
+    created_at timestamptz not null default now(),
+    unique (trip_id, sailing_id)
+  );
+  create table ferry_events (
+    id bigserial primary key,
+    link_id uuid not null references ferry_links(id) on delete cascade,
+    status text not null,
+    note text not null default '',
+    actor_id uuid references users(id) on delete set null,
+    created_at timestamptz not null default now()
+  );
+  -- phase 5: stored-value cards (the issuer ledger is the issuer's system of record; PINASBUS calls it through an adapter)
+  create table card_programs (
+    id uuid primary key default gen_random_uuid(),
+    org_id uuid not null references organizations(id) on delete cascade,
+    name text not null,
+    prefix text not null check (prefix ~ '^[0-9]{4}$'),
+    min_load_centavos integer not null default 10000,
+    max_balance_centavos integer not null default 1000000,
+    active boolean not null default true,
+    unique (org_id, name)
+  );
+  create table cards (
+    id uuid primary key default gen_random_uuid(),
+    org_id uuid not null references organizations(id) on delete cascade,
+    program_id uuid not null references card_programs(id) on delete cascade,
+    number text unique not null check (number ~ '^[0-9]{16}$'),
+    holder_name text not null default '',
+    user_id uuid references users(id) on delete set null,
+    status text not null default 'active' check (status in ('inventory', 'active', 'blocked')),
+    balance_centavos integer not null default 0 check (balance_centavos >= 0),
+    created_at timestamptz not null default now()
+  );
+  create index cards_user on cards (user_id);
+  create table card_ledger (
+    id bigserial primary key,
+    card_id uuid not null references cards(id) on delete cascade,
+    kind text not null check (kind in ('load', 'fare', 'refund', 'adjustment')),
+    amount_centavos integer not null,
+    balance_after integer not null,
+    reference text not null,
+    channel text not null default '',
+    created_at timestamptz not null default now(),
+    unique (kind, reference)
+  );
+  create table card_loads (
+    id uuid primary key default gen_random_uuid(),
+    ref text unique not null,
+    card_id uuid not null references cards(id) on delete cascade,
+    user_id uuid references users(id) on delete set null,
+    amount_centavos integer not null check (amount_centavos > 0),
+    status text not null default 'pending' check (status in ('pending', 'paid', 'failed')),
+    checkout_id text unique,
+    payment_id text,
+    created_at timestamptz not null default now()
+  );
+  alter table bookings add column paid_with text not null default 'paymongo' check (paid_with in ('paymongo', 'card', 'cash'));
+  alter table bookings add column card_id uuid references cards(id) on delete set null;
+  -- phase 6: notifications, MFA, password reset, background jobs
+  create table notifications (
+    id bigserial primary key,
+    user_id uuid not null references users(id) on delete cascade,
+    kind text not null,
+    title text not null,
+    body text not null default '',
+    link text not null default '',
+    read_at timestamptz,
+    emailed_at timestamptz,
+    created_at timestamptz not null default now()
+  );
+  create index notifications_user on notifications (user_id, created_at desc);
+  create table outbox (
+    id bigserial primary key,
+    to_email text not null,
+    subject text not null,
+    body text not null,
+    attempts integer not null default 0,
+    sent_at timestamptz,
+    last_error text not null default '',
+    created_at timestamptz not null default now()
+  );
+  create index outbox_pending on outbox (created_at) where sent_at is null;
+  alter table users add column mfa_secret text;
+  alter table users add column mfa_enabled boolean not null default false;
+  create table password_resets (
+    token_hash text primary key,
+    user_id uuid not null references users(id) on delete cascade,
+    expires_at timestamptz not null,
+    used_at timestamptz
+  );
+  create table mfa_challenges (
+    token_hash text primary key,
+    user_id uuid not null references users(id) on delete cascade,
+    next text not null default '/account',
+    expires_at timestamptz not null
+  );
+  create table job_runs (name text primary key, last_run timestamptz not null);
+  alter table bookings add column reminded_at timestamptz;`,
 ];
 
 async function migrate() {
@@ -320,6 +502,10 @@ async function migrate() {
     }
     const { rows: n } = await c.query<{ n: number }>('select count(*)::int n from organizations');
     if (n[0].n === 0) await seedDemo(c);
+    else if (process.env.DEMO_AUTO_RESET !== 'false') {
+      const { rows: v } = await c.query<{ value: number }>(`select value from settings where key = 'demo_version'`);
+      if ((v[0]?.value ?? 1) !== DEMO_VERSION) await resetDemoData(c);
+    }
     await c.query('commit');
   } catch (e) {
     await c.query('rollback').catch(() => {});

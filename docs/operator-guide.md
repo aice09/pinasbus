@@ -54,3 +54,27 @@ Roles are fixed by PINASBUS; you choose who has which. The full matrix is on the
 - **Bookings:** search by reference, name, email or phone and filter by date and status. **Mark refunded** after you refund in PayMongo (online) or in cash (terminal); the seats go back on sale.
 - **Overview:** today's trips; collected revenue, seats sold, online and terminal split and top segments over the last 30 days (for roles with reports).
 - **Audit log:** every change in your workspace and every automatic priority-seat release.
+
+## Baggage (phase 2)
+
+**Baggage** is for Baggage Handlers, Ticketing Officers, Conductors and administrators.
+- Scan a bag tag with the phone camera, or type it. Record the next step with where it is and a note.
+- A bag with an unpaid excess fee can't be **Loaded** until you tick **Fee collected**.
+- **Print tag** gives a QR label for the bag.
+- **Bags by trip** lists every bag with its weight and fee, and the hold total.
+- Set the free allowance, excess fee and bags per seat in **Company settings**, and per-bag and hold limits on each bus in **Fleet**.
+
+## Live tracking (phase 3)
+
+- **Crew:** on an assigned trip that is boarding or departed, the manifest shows **Share bus location from this phone**. It sends GPS every 15 seconds while switched on.
+- **Live tracking page** (for dispatch, operations and fleet roles): every bus on the road with its speed, average and top speed, distance remaining and ETA, and whether the position is live or simulated.
+- **Alerts:** open alerts for speeding, leaving the route and unusual stops, each with a map link and an **Acknowledge** button. Alerts are also sent to administrators and dispatchers as notifications.
+- **Thresholds:** set the speed limit, the off-route distance and the unusual-stop minutes in **Company settings**. Simulated positions never raise alerts.
+
+## Ferry connections (phase 4)
+
+On a trip whose route includes a ferry leg, **Ferry connection** offers sailings from that port within 36 hours that have deck space. **Book ferry** creates a reservation with a QR code. The crew scans or opens it at the port to record approaching, waiting and back on the road; port staff record boarding, on the vessel, sailing and unloading. Passengers see each step on the live map.
+
+## Payments
+
+**Company settings → Payment methods:** online payments through PayMongo and cash at the terminal are always on. Tick **Accept transport cards** to let passengers pay with PINASBUS-supported cards.

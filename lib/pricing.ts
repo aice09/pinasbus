@@ -3,9 +3,9 @@ import { discounted, type Discounts, type PassengerCategory } from './seatpolicy
 
 type Stops = { fare: number }[];
 
-/** Segment fare in centavos: cumulative fare at the drop-off minus at the pick-up, plus the schedule's adjustment. */
-export function segmentFare(t: { stops: Stops; fare_adjust_pct: number | string }, i: number, j: number) {
-  const pesos = Math.max(0, t.stops[j].fare - t.stops[i].fare);
+/** Segment fare in centavos: cumulative fare at the drop-off minus at the pick-up (at least the route's minimum), plus the schedule's adjustment. */
+export function segmentFare(t: { stops: Stops; fare_adjust_pct: number | string; min_fare?: number }, i: number, j: number) {
+  const pesos = Math.max(t.min_fare ?? 0, t.stops[j].fare - t.stops[i].fare);
   return Math.round(pesos * (100 + Number(t.fare_adjust_pct)));
 }
 

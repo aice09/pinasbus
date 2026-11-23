@@ -2,7 +2,10 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { endSession, hashPassword, requireUser, verifyPassword } from '@/lib/auth';
+import { endSession, hashPassword, PRIVILEGED_ROLES, requireUser, verifyPassword } from '@/lib/auth';
+import { notify } from '@/lib/notify';
+import { open as openSealed, seal } from '@/lib/secretbox';
+import { newSecret, verifyTotp } from '@/lib/totp';
 import { q } from '@/lib/db';
 import type { ActionResult } from '@/components/ActionForm';
 
@@ -74,4 +77,42 @@ export async function deleteAccount(_: ActionResult, f: FormData): Promise<Actio
   await endSession();
   await q('delete from users where id = $1', [u.id]);
   redirect('/?deleted=1');
+}
+
+// ---------- two-step sign-in ----------
+export async function startMfaSetup(_: ActionResult): Promise<ActionResult> {
+  const u = await requireUser('/account/security');
+  if (u.mfa_enabled) return { error: 'Two-step sign-in is already on.' };
+  await q('update users set mfa_secret = $2 where id = $1', [u.id, seal(newSecret(), `mfa:${u.id}`)]);
+  revalidatePath('/account/security');
+  return { ok: 'Scan the code with your authenticator app, then enter the 6-digit code it shows.' };
+}
+
+export async function confirmMfa(_: ActionResult, f: FormData): Promise<ActionResult> {
+  const u = await requireUser('/account/security');
+  const [row] = await q<{ mfa_secret: string | null }>('select mfa_secret from users where id = $1', [u.id]);
+  if (!row.mfa_secret) return { error: 'Start the setup first.' };
+  if (!verifyTotp(openSealed(row.mfa_secret, `mfa:${u.id}`), String(f.get('code') ?? '').replace(/\s/g, ''))) return { error: 'That code is wrong. Check the time on your phone and try the newest code.' };
+  await q('update users set mfa_enabled = true where id = $1', [u.id]);
+  await notify({ userIds: [u.id] }, { kind: 'security.mfa_on', title: 'Two-step sign-in is on', body: 'From now on PINASBUS asks for a code from your authenticator app when you sign in.', link: '/account/security' });
+  revalidatePath('/account', 'layout');
+  return { ok: 'Two-step sign-in is on.' };
+}
+
+export async function disableMfa(_: ActionResult, f: FormData): Promise<ActionResult> {
+  const u = await requireUser('/account/security');
+  const privileged = u.platform_role === 'platform_admin' || u.memberships.some((m) => PRIVILEGED_ROLES.includes(m.role));
+  if (privileged && process.env.MFA_REQUIRED !== 'false') return { error: 'Your role requires two-step sign-in, so it cannot be turned off.' };
+  const [row] = await q<{ mfa_secret: string | null }>('select mfa_secret from users where id = $1', [u.id]);
+  if (!row.mfa_secret || !verifyTotp(openSealed(row.mfa_secret, `mfa:${u.id}`), String(f.get('code') ?? '').replace(/\s/g, ''))) return { error: 'That code is wrong.' };
+  await q('update users set mfa_enabled = false, mfa_secret = null where id = $1', [u.id]);
+  revalidatePath('/account', 'layout');
+  return { ok: 'Two-step sign-in is off.' };
+}
+
+export async function markNotificationsRead(_: ActionResult): Promise<ActionResult> {
+  const u = await requireUser('/account/notifications');
+  await q('update notifications set read_at = now() where user_id = $1 and read_at is null', [u.id]);
+  revalidatePath('/', 'layout');
+  return { ok: 'All caught up.' };
 }

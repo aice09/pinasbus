@@ -25,6 +25,12 @@ A **modular monolith** ([ADR 0001](adr/0001-modular-monolith.md)): one deployabl
 | Booking and ticketing | `lib/bookings.ts`, `lib/pricing.ts`, `app/api/bookings` | bookings |
 | Payments | `lib/paymongo.ts`, `app/api/paymongo/webhook` | (PayMongo is the record; bookings hold checkout and payment ids) |
 | Padala | `lib/padala.ts` | shipments, shipment_events, settings |
+| Baggage | `lib/baggage.ts`, `app/actions/ops.ts` (updateBag), `addBags` | bags, bag_events |
+| GPS and tracking | `lib/geo.ts`, `lib/tracking.ts`, `app/api/track`, `app/api/gps` | gps_points, trip_alerts, routes.geometry |
+| Shipping and ferries | `lib/ferry.ts`, `app/actions/ferry.ts` | vessels, sailings, ferry_links, ferry_events |
+| Stored-value cards | `lib/cards.ts` (IssuerAdapter), `app/actions/cards.ts` | card_programs, cards, card_ledger, card_loads |
+| Notifications | `lib/notify.ts`, `lib/jobs.ts` | notifications, outbox |
+| Assistant | `lib/assistant.ts`, `app/api/assistant` | none (Gemini function calling over the modules above) |
 | Reporting | `lib/metrics.ts`, dashboards | reads only |
 
 Rules: domain modules (`lib/*`) never import from `app/`. Pure logic (pricing, seat policy, layouts, RBAC) has no I/O and is shared with the browser. Every SQL query is parameterized.
@@ -88,3 +94,17 @@ Not yet: MFA for privileged accounts, and email-based password resets (see [road
 | Unit | `npm test` | Fees and segment fares, discounts, seat policy and release deadline, RBAC matrix and crew scope, layout validation, sales window, webhook signatures, Padala |
 | Database | `npm run test:db` (needs `DATABASE_URL`) | Trip creation, legs and network; holds, double booking, late and wrong payments; priority seat release with audit (on a throwaway company) |
 | End to end | Playwright scripts used during development | Every role's pages, tenant isolation, crew scope, seat-policy refusals in the UI and API, terminal sale, editors |
+
+## Phases 2–6
+
+- **Background jobs** (`instrumentation.ts` → `lib/jobs.ts`): flush the email outbox (20 s), expire seat holds (1 min), send trip reminders 20–28 hours before departure (5 min). Each job holds a Postgres advisory lock, so only one pod runs it.
+- **Notifications** are written in the same request as the change (in-app row plus outbox row). SMTP failures are retried up to 5 times and never break a payment.
+- **Tracking:**
+  - The route line comes from OSRM once and is cached on the route (straight lines across water or when offline).
+  - The live snapshot uses GPS points from the last 5 minutes. Otherwise `simulate()` places the bus deterministically by timetable progress with a speed profile, always flagged `simulated`.
+  - The map polls `/api/track/<trip>` every 5 seconds. Polling rather than SSE, because the tunnel and Mapping time out long requests at 30 seconds.
+  - Alerts (speeding, deviation from the line, unusual stops) are throttled to one per kind per 10 minutes.
+- **Ferries:** bus trips and sailings meet only in `ferry_links`. The QR code holds `/ferry/scan?token=` (a 24-byte random token). Steps are allowed by side (crew or ship staff) and order. Sailing status cascades to its links and notifies passengers.
+- **Cards:** every balance change goes through `IssuerAdapter`, idempotent on `(kind, reference)`. Fares charged to a card mark the booking paid with `paid_with = 'card'`, and refunds credit the same card.
+- **Two-step sign-in:** TOTP (RFC 6238, tested against the RFC vector). Seeds are encrypted with AES-256-GCM using `APP_SECRET_KEY` (a generated Kubernetes Secret). A password check alone parks the user in a 10-minute challenge, and privileged roles are redirected to set it up.
+- **Assistant:** Gemini with four tools (list destinations, search trips, booking status by reference, where is my bus). It is told to use tools for every fact and to flag indicative and simulated data. On overload it falls back across models. The browser renders only text and site-relative links, never model HTML.

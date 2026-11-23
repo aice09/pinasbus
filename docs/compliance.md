@@ -14,3 +14,9 @@ For the legal and compliance reviewers, and whoever approves a production launch
 | Personal data (RA 10173) | Minimal fields; only the ID type and last 4 characters; public tracking masks names; account deletion; audit log | Privacy impact assessment, NPC registration, retention periods, data processing agreements with each operator and PayMongo |
 | Payments (PCI DSS) | Hosted PayMongo checkout; no card data touches PINASBUS; signed webhooks; idempotent confirmation | PayMongo merchant agreements per operator, settlement and split payments, refund SLAs |
 | Demo data | Real operator names and public data, labelled unaffiliated, with sources and dates | Remove or obtain permission before any production use |
+| Maps and routing | OpenFreeMap vector tiles (OpenStreetMap data, attribution shown); road lines from the public OSRM demo router, cached per route | OSRM demo server terms forbid heavy use: self-host OSRM or Valhalla before production; confirm OpenFreeMap terms for your traffic |
+| Location data | Crew phones share GPS only while switched on, for assigned trips; points are stored per trip | Retention period for GPS points, crew consent and notice |
+| Speed limits | Company-set threshold (default 80 km/h) for alerts | Applicable LTFRB and road speed limits per road class |
+| AI assistant | Gemini (Google) receives the conversation and tool results such as schedules and ticket status by reference; no card or ID data is sent | Data-processing terms with Google, disclosure in the privacy notice, retention |
+| Baggage charges | Company-set allowance and excess fee | Must match approved tariffs |
+| Stored-value cards | Issuer adapter; PINASBUS keeps no balance of its own | BSP e-money or stored-value rules for issuers; agreements per issuer |

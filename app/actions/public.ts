@@ -1,6 +1,8 @@
 'use server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
+import { DEFAULT_BAGGAGE, registerBags, type BaggageRules } from '@/lib/baggage';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { q } from '@/lib/db';
@@ -78,4 +80,28 @@ export async function createPadala(_: ActionResult, f: FormData): Promise<Action
     return { error: 'The payment page could not be opened. Try again.' };
   }
   redirect(url);
+}
+
+// ---------- baggage registration (by whoever holds the ticket reference, like the ticket page itself) ----------
+const BagsIn = z.object({
+  ref: z.string().regex(/^(PB|BB)[A-Z2-9]{10}$/),
+  bags: z.array(z.object({ passenger: z.string().trim().max(80), description: z.string().trim().min(2, 'Describe each bag.').max(120),
+    category: z.enum(['regular', 'fragile', 'oversized', 'sports', 'perishable']), weight: z.coerce.number().positive('Enter each bag’s weight.') })).min(1).max(10),
+});
+export async function addBags(_: ActionResult, f: FormData): Promise<ActionResult> {
+  if (!allow('bags:' + (await ip()), 20, 10 * 60_000)) return { error: 'Too many attempts. Wait a few minutes.' };
+  const rows = f.getAll('description').map((_, i) => ({ passenger: String(f.getAll('passenger')[i] ?? ''), description: String(f.getAll('description')[i] ?? ''), category: String(f.getAll('category')[i] ?? 'regular'), weight: String(f.getAll('weight')[i] ?? '') }))
+    .filter((r) => r.description.trim() || r.weight);
+  const p = BagsIn.safeParse({ ref: f.get('ref'), bags: rows });
+  if (!p.success) return { error: p.error.issues[0].message };
+  const [b] = await q<{ id: string; org_id: string; trip_uuid: string; seats: string[]; passengers: { name: string }[]; name: string; status: string; trip_status: string; settings: { baggage?: Partial<BaggageRules> } }>(
+    `select b.id, b.org_id, b.trip_uuid, b.seats, b.passengers, b.name, b.status, t.status trip_status, o.settings
+       from bookings b join trips t on t.id = b.trip_uuid join organizations o on o.id = b.org_id where b.ref = $1`, [p.data.ref]);
+  if (!b || b.status !== 'paid') return { error: 'Bags can be added to paid tickets only.' };
+  if (['departed', 'arrived', 'cancelled'].includes(b.trip_status)) return { error: 'This trip has already left.' };
+  const user = await currentUser();
+  const r = await registerBags(b, p.data.bags, { ...DEFAULT_BAGGAGE, ...(b.settings.baggage ?? {}) }, user?.id ?? null);
+  if ('error' in r) return { error: r.error };
+  revalidatePath(`/booking/${p.data.ref}`);
+  return { ok: `${r.bags.length} bag${r.bags.length > 1 ? 's' : ''} registered${r.fee ? `. Excess baggage fee: PHP ${(r.fee / 100).toFixed(2)}, paid at the terminal check-in` : ', within your free allowance'}.` };
 }

@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
-import { attachCheckout, cancelHold, hold, SeatsTaken } from '@/lib/bookings';
+import { attachCheckout, bookingNotice, cancelHold, hold, SeatsTaken, type Booking } from '@/lib/bookings';
+import { issuerFor } from '@/lib/cards';
 import { bookable } from '@/lib/catalog';
 import { q } from '@/lib/db';
 import { PASSENGER_KINDS, seatName } from '@/lib/layouts';
@@ -22,6 +23,8 @@ const Body = z.object({
     seat: z.string().max(5), name: z.string().trim().max(80).default(''), category: z.string(), profileId: z.string().uuid().optional(),
     idType: z.string().trim().max(40).default(''), idLast4: z.string().trim().max(4).default(''),
   })).min(1).max(6),
+  payWith: z.enum(['online', 'card']).default('online'),
+  cardId: z.string().uuid().optional(),
 });
 
 const bad = (error: string, status = 400) => NextResponse.json({ error }, { status });
@@ -30,11 +33,11 @@ export async function POST(req: NextRequest) {
   const origin = req.headers.get('origin');
   if (origin && origin !== new URL(process.env.PUBLIC_BASE_URL ?? req.nextUrl.origin).origin) return bad('Bad origin.', 403);
   if (!allow('book:' + clientIp(req), 10, 60_000)) return bad('Too many attempts. Wait a minute and try again.', 429);
-  if (!paymentsConfigured()) return bad('Online payment is not available yet.', 503);
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return bad(parsed.error.issues[0]?.message ?? 'Check the form and try again.');
   const b = parsed.data;
+  if (b.payWith === 'online' && !paymentsConfigured()) return bad('Online payment is not available yet.', 503);
 
   const trip = await tripById(b.tripId);
   if (!trip || trip.status === 'cancelled') return bad('That trip is not running.', 404);
@@ -76,6 +79,19 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     if (e instanceof SeatsTaken) return NextResponse.json({ error: 'Someone just took one of those seats. Pick again.', taken: (await availability(trip)).taken }, { status: 409 });
     throw e;
+  }
+
+  if (b.payWith === 'card') {
+    const accepts = (trip.org_settings as { payments?: { cards?: boolean } }).payments?.cards !== false;
+    const [card] = user && b.cardId ? await q<{ id: string; org_id: string; status: string }>('select id, org_id, status from cards where id = $1 and user_id = $2', [b.cardId, user.id]) : [];
+    const fail = async (msg: string) => { await cancelHold(booking.id); return bad(msg); };
+    if (!accepts) return fail(`${trip.org_name} does not accept transport cards. Pay online instead.`);
+    if (!card || card.status !== 'active') return fail('Choose one of your active transport cards.');
+    const r = await issuerFor(card.org_id).charge({ cardId: card.id, amount: booking.total_centavos, reference: booking.ref, channel: `fare ${trip.org_name}` });
+    if (!r.ok) return fail(r.error);
+    const [paid] = await q<Booking>(`update bookings set status = 'paid', paid_with = 'card', card_id = $2, paid_at = now(), payment_id = $3 where id = $1 returning *`, [booking.id, card.id, `card:${booking.ref}`]);
+    await bookingNotice(paid);
+    return NextResponse.json({ ref: booking.ref, paid: true });
   }
 
   const base = process.env.PUBLIC_BASE_URL ?? req.nextUrl.origin;

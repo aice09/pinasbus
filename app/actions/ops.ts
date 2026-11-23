@@ -10,11 +10,13 @@ import { manilaNow } from '@/lib/catalog';
 import { q } from '@/lib/db';
 import { checkLayout, PASSENGER_KINDS, SEAT_KINDS, seatName, type Seat, type SeatKind } from '@/lib/layouts';
 import { seatPrice, segmentFare } from '@/lib/pricing';
-import { can, isRole, type Permission } from '@/lib/rbac';
+import { can, isRole, ROLE_KIND, type Permission } from '@/lib/rbac';
 import { isCategory, PASSENGER_CATEGORIES, seatAllowed } from '@/lib/seatpolicy';
 import { actionCtx, audit, isErr, type Ctx } from '@/lib/tenancy';
 import { availability, discountsOf, invalidateNetwork, legOf, tripById } from '@/lib/trips';
 import type { ActionResult } from '@/components/ActionForm';
+import { BAG_STATUSES, bagByTag, setBagStatus, type BagStatus } from '@/lib/baggage';
+import { refundToCard } from '@/lib/bookings';
 
 type R = Promise<ActionResult>;
 const slugOf = (f: FormData) => String(f.get('org') ?? '');
@@ -30,6 +32,8 @@ const Company = z.object({
   address: z.string().trim().max(200),
   releaseHoursBefore: z.coerce.number().int().min(0).max(72),
   d_senior: z.coerce.number().min(0).max(100), d_pwd: z.coerce.number().min(0).max(100), d_student: z.coerce.number().min(0).max(100), d_child: z.coerce.number().min(0).max(100),
+  freeKgPerSeat: z.coerce.number().min(0).max(100), excessPerKg: z.coerce.number().min(0).max(1000), maxBagsPerSeat: z.coerce.number().int().min(0).max(10),
+  speedLimitKph: z.coerce.number().min(20).max(140), deviationKm: z.coerce.number().min(0.2).max(50), unusualStopMinutes: z.coerce.number().int().min(5).max(240),
 });
 export async function saveCompany(_: ActionResult, f: FormData): R {
   const c = await ctx(f, 'org.manage'); if (isErr(c)) return c;
@@ -37,7 +41,10 @@ export async function saveCompany(_: ActionResult, f: FormData): R {
   if (!p.success) return { error: p.error.issues[0].message };
   const d = p.data;
   const kinds = f.getAll('releaseKinds').map(String).filter((k) => ['senior', 'pwd', 'priority'].includes(k)) as SeatKind[];
-  const settings = { ...c.org.settings, seatPolicy: { releaseHoursBefore: d.releaseHoursBefore, releaseKinds: kinds }, discounts: { regular: 0, senior: d.d_senior, pwd: d.d_pwd, student: d.d_student, child: d.d_child } };
+  const settings = { ...c.org.settings, seatPolicy: { releaseHoursBefore: d.releaseHoursBefore, releaseKinds: kinds }, discounts: { regular: 0, senior: d.d_senior, pwd: d.d_pwd, student: d.d_student, child: d.d_child },
+    baggage: { freeKgPerSeat: d.freeKgPerSeat, excessPerKgCentavos: Math.round(d.excessPerKg * 100), maxBagsPerSeat: d.maxBagsPerSeat },
+    tracking: { speedLimitKph: d.speedLimitKph, deviationKm: d.deviationKm, unusualStopMinutes: d.unusualStopMinutes },
+    payments: { online: true, cards: f.get('accept_cards') === 'on', cash: true } };
   await q('update organizations set contact_email = $2, contact_phone = $3, address = $4, settings = $5 where id = $1', [c.org.id, d.contact_email, d.contact_phone, d.address, JSON.stringify(settings)]);
   await audit(c.user.id, c.org.id, 'company.settings', 'organization', c.org.id, settings);
   return done(c, '/settings', 'Saved. New bookings use these rules right away.');
@@ -48,7 +55,7 @@ export async function addStaff(_: ActionResult, f: FormData): R {
   const c = await ctx(f, 'users.manage'); if (isErr(c)) return c;
   const name = String(f.get('name') ?? '').trim().slice(0, 80), email = String(f.get('email') ?? '').trim().toLowerCase().slice(0, 120), role = f.get('role');
   if (name.length < 2 || !z.string().email().safeParse(email).success) return { error: 'Enter the person’s name and email.' };
-  if (!isRole(role)) return { error: 'Choose a role.' };
+  if (!isRole(role) || ROLE_KIND[role] !== c.org.kind) return { error: 'Choose a role.' };
   const pw = randomBytes(9).toString('base64url');
   const [u] = await q<{ id: string; created: boolean }>(
     `insert into users (email, name, password_hash, must_change_password) values ($1,$2,$3,true)
@@ -68,7 +75,7 @@ export async function setStaffRole(_: ActionResult, f: FormData): R {
     await audit(c.user.id, c.org.id, 'staff.remove', 'user', id);
     return done(c, '/staff', 'Removed from the company.');
   }
-  if (!isRole(role)) return { error: 'Choose a role.' };
+  if (!isRole(role) || ROLE_KIND[role] !== c.org.kind) return { error: 'Choose a role.' };
   await q('update memberships set role = $3 where user_id = $1 and org_id = $2', [id, c.org.id, role]);
   await audit(c.user.id, c.org.id, 'staff.role', 'user', id, { role });
   return done(c, '/staff', 'Role changed.');
@@ -187,14 +194,15 @@ export async function saveRoute(_: ActionResult, f: FormData): R {
   const full = stops.map((s) => ({ station_id: ids.get(s.name) ?? null, ...s }));
   const mode = itinerary.some((l) => l.type === 'ferry') ? 'road_ferry' : 'road';
   const cat = String(f.get('category_id') ?? '') || null, active = f.get('active') === 'on';
+  const minFare = Math.max(0, Math.min(5000, Math.round(Number(f.get('min_fare')) || 0)));
   try {
     if (id) {
-      const r = await q('update routes set code=$3, name=$4, category_id=$5, stops=$6, itinerary=$7, mode=$8, active=$9 where id = $1 and org_id = $2 returning id',
-        [id, c.org.id, code, name, cat, JSON.stringify(full), JSON.stringify(itinerary), mode, active]);
+      const r = await q('update routes set code=$3, name=$4, category_id=$5, stops=$6, itinerary=$7, mode=$8, active=$9, min_fare=$10, geometry=null where id = $1 and org_id = $2 returning id',
+        [id, c.org.id, code, name, cat, JSON.stringify(full), JSON.stringify(itinerary), mode, active, minFare]);
       if (!r.length) return { error: 'Route not found.' };
     } else {
-      await q('insert into routes (org_id, code, name, category_id, stops, itinerary, mode, active) values ($1,$2,$3,$4,$5,$6,$7,$8)',
-        [c.org.id, code, name, cat, JSON.stringify(full), JSON.stringify(itinerary), mode, active]);
+      await q('insert into routes (org_id, code, name, category_id, stops, itinerary, mode, active, min_fare) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+        [c.org.id, code, name, cat, JSON.stringify(full), JSON.stringify(itinerary), mode, active, minFare]);
     }
   } catch (e) { if ((e as { code?: string }).code === '23505') return { error: 'Another route already uses that code.' }; throw e; }
   invalidateNetwork();
@@ -259,8 +267,9 @@ export async function dispatchTrip(_: ActionResult, f: FormData): R {
 export async function refundBooking(_: ActionResult, f: FormData): R {
   const c = await ctx(f, 'bookings.refund'); if (isErr(c)) return c;
   const id = String(f.get('id'));
-  const r = await q(`update bookings set status = 'refunded' where id = $1 and org_id = $2 and status in ('needs_refund', 'paid') returning id`, [id, c.org.id]);
+  const r = await q<{ id: string; paid_with: string; card_id: string | null; total_centavos: number; ref: string }>(`update bookings set status = 'refunded' where id = $1 and org_id = $2 and status in ('needs_refund', 'paid') returning id, paid_with, card_id, total_centavos, ref`, [id, c.org.id]);
   if (!r.length) return { error: 'Only paid or needs-refund bookings can be refunded.' };
+  if (r[0].paid_with === 'card' && r[0].card_id) await refundToCard(r[0].card_id, r[0].total_centavos, r[0].ref);
   await q('delete from trip_seats where booking_id = $1', [id]);
   await audit(c.user.id, c.org.id, 'booking.refund', 'booking', id);
   return done(c, '/bookings', 'Marked refunded; the seats are back on sale.');
@@ -310,4 +319,27 @@ export async function checkIn(_: ActionResult, f: FormData): R {
   await q('update bookings set checked_in = array(select distinct unnest(checked_in || $2::text)) where id = $1', [b.id, seat]);
   await audit(c.user.id, c.org.id, 'booking.checkin', 'booking', b.id, { seat });
   return done(c, `/trips/${b.trip_uuid}`, `${seatName(seat)} checked in.`);
+}
+
+// ---------- baggage ----------
+export async function updateBag(_: ActionResult, f: FormData): R {
+  const c = await ctx(f, 'baggage.manage'); if (isErr(c)) return c;
+  const bag = await bagByTag(String(f.get('tag') ?? ''));
+  if (!bag || bag.org_id !== c.org.id) return { error: 'No bag with that tag in this company.' };
+  if (!can(c.role, 'trips.view') && bag.driver_id !== c.user.id && bag.conductor_id !== c.user.id) return { error: 'You are not assigned to this bag’s trip.' };
+  const status = String(f.get('status')) as BagStatus;
+  if (!(status in BAG_STATUSES)) return { error: 'Choose a status.' };
+  if (f.get('fee_paid') === 'on' && !bag.fee_paid) await q('update bags set fee_paid = true where id = $1', [bag.id]);
+  if (status === 'loaded' && !bag.fee_paid && f.get('fee_paid') !== 'on') return { error: `Collect the excess baggage fee (PHP ${(bag.fee_centavos / 100).toFixed(2)}) before loading.` };
+  await setBagStatus(bag.id, status, String(f.get('location') ?? ''), String(f.get('note') ?? ''), c.user.id);
+  await audit(c.user.id, c.org.id, 'bag.status', 'bag', bag.tag, { status });
+  return done(c, '/baggage', `${bag.tag}: ${BAG_STATUSES[status]}.`);
+}
+
+export async function ackAlert(_: ActionResult, f: FormData): R {
+  const c = await ctx(f, 'tracking.view'); if (isErr(c)) return c;
+  const r = await q('update trip_alerts set acknowledged = true where id = $1 and org_id = $2 returning id', [Number(f.get('id')), c.org.id]);
+  if (!r.length) return { error: 'Alert not found.' };
+  await audit(c.user.id, c.org.id, 'alert.ack', 'trip_alert', String(f.get('id')));
+  return done(c, '/live', 'Acknowledged.');
 }

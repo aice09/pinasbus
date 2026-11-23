@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Archivo, Atkinson_Hyperlegible } from 'next/font/google';
 import Link from 'next/link';
 import { currentUser } from '@/lib/auth';
+import { unreadCount } from '@/lib/notify';
+import { assistantEnabled } from '@/lib/assistant';
+import { Assistant } from '@/components/Assistant';
 import './globals.css';
 
 const display = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-display' });
@@ -19,6 +22,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser().catch(() => null);
   const ops = user?.memberships.filter((m) => m.org_kind === 'bus_operator') ?? [];
+  const unread = user ? await unreadCount(user.id).catch(() => 0) : 0;
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
@@ -44,6 +48,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 {user.platform_role === 'platform_admin' && <Link href="/platform">Platform</Link>}
                 {ops.length === 1 && <Link href={`/ops/${ops[0].org_slug}`}>{ops[0].org_name.split(' (')[0]}</Link>}
                 {ops.length > 1 && <Link href="/account#work">My companies</Link>}
+                <Link href="/account/notifications" className="bell" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}>
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5-6.7V3.5a2 2 0 0 0-4 0v.8A7 7 0 0 0 5 11v5l-2 2v1h18v-1Z" fill="currentColor" /></svg>
+                  {unread > 0 && <span className="bell-n">{unread > 9 ? '9+' : unread}</span>}
+                </Link>
                 <Link href="/account" className="btn quiet small">{user.name.split(' ')[0]}</Link>
               </>
             ) : (
@@ -55,6 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </nav>
         </header>
         <div id="main">{children}</div>
+        {assistantEnabled() && <Assistant />}
         <footer className="footer">
           <div className="footer-cols">
             <div>

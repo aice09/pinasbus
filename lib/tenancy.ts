@@ -2,7 +2,7 @@
 // checks the caller's membership + permission on the server. Queries then filter by org.id.
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import { requireUser, type User } from './auth.ts';
+import { PRIVILEGED_ROLES, requireMfa, requireUser, type User } from './auth.ts';
 import { q } from './db.ts';
 import { can, ROLES, type Permission, type Role } from './rbac.ts';
 import { DEFAULT_DISCOUNTS, DEFAULT_POLICY, type Discounts, type SeatPolicy } from './seatpolicy.ts';
@@ -10,7 +10,7 @@ import { DEFAULT_DISCOUNTS, DEFAULT_POLICY, type Discounts, type SeatPolicy } fr
 export type Org = {
   id: string; kind: 'platform' | 'bus_operator' | 'card_issuer' | 'shipping_operator'; name: string; slug: string;
   status: 'pending' | 'active' | 'suspended'; contact_email: string; contact_phone: string; address: string;
-  settings: { seatPolicy?: SeatPolicy; discounts?: Discounts }; is_demo: boolean; data_sources: { url: string; verified_at: string; what: string; verified: boolean }[];
+  settings: { seatPolicy?: SeatPolicy; discounts?: Discounts; baggage?: { freeKgPerSeat: number; excessPerKgCentavos: number; maxBagsPerSeat: number }; tracking?: { speedLimitKph: number; deviationKm: number; unusualStopMinutes: number }; payments?: { online: boolean; cards: boolean; cash: boolean } }; is_demo: boolean; data_sources: { url: string; verified_at: string; what: string; verified: boolean }[];
 };
 export type Ctx = { user: User; org: Org; role: Role; can: (p: Permission) => boolean; platform: boolean };
 
@@ -36,6 +36,7 @@ export async function orgCtx(slug: string, perm?: Permission, opts: { throwing?:
     if (opts.throwing) throw new Forbidden(`missing ${perm ?? 'membership'}`);
     redirect('/account?denied=1');
   }
+  if (PRIVILEGED_ROLES.includes(role!) || platform) requireMfa(user);
   return { user, org, role: role!, can: (p) => can(role, p), platform };
 }
 

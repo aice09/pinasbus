@@ -14,9 +14,13 @@ export default async function AccountLayout({ children }: { children: React.Reac
         <nav aria-label="Your account">
           <Link href="/account">Overview</Link>
           <Link href="/account/trips">Trips</Link>
+          <Link href="/account/baggage">Baggage</Link>
           <Link href="/account/padala">Padala</Link>
           <Link href="/account/passengers">Saved passengers</Link>
+          <Link href="/account/notifications">Notifications</Link>
+          <Link href="/account/cards">Transport cards</Link>
           <Link href="/account/settings">Settings</Link>
+          <Link href="/account/security">Security</Link>
           {u.platform_role === 'platform_admin' && <Link href="/platform">Platform</Link>}
           {u.memberships.filter((m) => m.org_kind === 'bus_operator').map((m) => <Link key={m.org_id} href={`/ops/${m.org_slug}`}>{m.org_name.split(' (')[0]}</Link>)}
         </nav>

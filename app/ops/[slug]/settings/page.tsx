@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { saveCompany } from '@/app/actions/ops';
 import { orgCtx, orgDiscounts, orgPolicy } from '@/lib/tenancy';
 import { ActionForm } from '@/components/ActionForm';
+import { DEFAULT_BAGGAGE } from '@/lib/baggage';
+import { DEFAULT_TRACKING } from '@/lib/tracking';
 import { OrgField } from '@/components/OrgField';
 
 export const metadata: Metadata = { title: 'Company settings' };
@@ -10,6 +12,7 @@ export default async function Settings({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const c = await orgCtx(slug, 'org.manage');
   const policy = orgPolicy(c.org), d = orgDiscounts(c.org);
+  const bag = { ...DEFAULT_BAGGAGE, ...(c.org.settings.baggage ?? {}) }, trk = { ...DEFAULT_TRACKING, ...(c.org.settings.tracking ?? {}) };
   return (
     <>
       <h1 className="page-h">Company settings</h1>
@@ -42,6 +45,29 @@ export default async function Settings({ params }: { params: Promise<{ slug: str
             <label className="field">Student<input name="d_student" type="number" min="0" max="100" step="0.5" defaultValue={d.student} /></label>
             <label className="field">Child<input name="d_child" type="number" min="0" max="100" step="0.5" defaultValue={d.child} /></label>
           </div>
+        </section>
+        <section className="panel">
+          <h2>Baggage</h2>
+          <div className="row3">
+            <label className="field">Free allowance per seat (kg)<input name="freeKgPerSeat" type="number" min="0" max="100" defaultValue={bag.freeKgPerSeat} /></label>
+            <label className="field">Excess fee per kg (PHP)<input name="excessPerKg" type="number" min="0" step="0.5" defaultValue={bag.excessPerKgCentavos / 100} /></label>
+            <label className="field">Bags per seat<input name="maxBagsPerSeat" type="number" min="0" max="10" defaultValue={bag.maxBagsPerSeat} /></label>
+          </div>
+          <p className="note">Per-bag weight and the hold limit are set on each bus in Fleet.</p>
+        </section>
+        <section className="panel">
+          <h2>Tracking alerts</h2>
+          <p className="note">Alerts use live GPS from crew phones; simulated positions never raise alerts. Set the speed limit your franchise and the road rules require.</p>
+          <div className="row3">
+            <label className="field">Speed limit (km/h)<input name="speedLimitKph" type="number" min="20" max="140" defaultValue={trk.speedLimitKph} /></label>
+            <label className="field">Off-route after (km)<input name="deviationKm" type="number" min="0.2" step="0.1" defaultValue={trk.deviationKm} /></label>
+            <label className="field">Unusual stop after (minutes)<input name="unusualStopMinutes" type="number" min="5" defaultValue={trk.unusualStopMinutes} /></label>
+          </div>
+        </section>
+        <section className="panel">
+          <h2>Payment methods</h2>
+          <p className="note">Online payments (GCash, Maya, cards through PayMongo) and cash at the terminal are always on.</p>
+          <label className="check"><input type="checkbox" name="accept_cards" defaultChecked={c.org.settings.payments?.cards !== false} /> Accept PINASBUS-supported transport cards</label>
         </section>
       </ActionForm>
     </>

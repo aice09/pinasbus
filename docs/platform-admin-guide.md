@@ -23,4 +23,12 @@ Inside a company workspace a platform administrator acts as **Auditor**: read-on
 
 ## Password resets
 
-There is no self-service reset email yet (phase 6 adds email). Use the snippet in [operations.md](operations.md#reset-a-customers-password) after confirming the person's identity.
+People reset their own password from **Forgot your password?** on the sign-in page. If they no longer have access to their email, confirm their identity and use the snippet in [operations.md](operations.md#reset-a-customers-password) after confirming the person's identity.
+
+## Phases 2–6 at the platform level
+
+- **Companies:** also register **Card issuers** and **Shipping operators**. Their first administrator gets the Card Administrator or Shipping Administrator role, and each works in its own workspace (`/cards/<slug>`, `/ship/<slug>`).
+- **Two-step sign-in:** required for platform administrators, company administrators, finance officers, and shipping and card administrators (`mfaRequired`). The first visit to a privileged area sends you to **Account → Security** to set it up.
+- **Email:** every notification and password reset is written to an outbox and sent by a background job. The bundled Mailpit catches all mail; open its inbox with `kubectl -n bikolbus port-forward svc/bikolbus-mailpit 8025` then http://localhost:8025. For real delivery set `mail.smtpUrl`.
+- **AI assistant:** uses the Gemini key in Secret `bikolbus-ai` (copied from AKADEMIA's configuration). Remove the Secret to hide it.
+- **Demo data:** reloads automatically when the seed version changes (`DEMO_AUTO_RESET=false` turns that off). **Reset demo data** reloads it on demand. Neither touches real companies.

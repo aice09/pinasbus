@@ -1,0 +1,54 @@
+{{- if .Values.mailpit.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-mailpit
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mailpit
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/instance: {{ .Release.Name }}, app.kubernetes.io/component: mailpit }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: bikolbus, app.kubernetes.io/instance: {{ .Release.Name }}, app.kubernetes.io/component: mailpit }
+    spec:
+      automountServiceAccountToken: false
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: mailpit
+          image: {{ .Values.mailpit.image }}
+          args: ["--max", "2000"]
+          ports: [{ name: smtp, containerPort: 1025 }, { name: ui, containerPort: 8025 }]
+          resources: { requests: { cpu: 10m, memory: 32Mi }, limits: { cpu: 200m, memory: 128Mi } }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+          volumeMounts: [{ name: data, mountPath: /data }, { name: tmp, mountPath: /tmp }]
+          env: [{ name: MP_DATABASE, value: /data/mailpit.db }]
+      volumes: [{ name: data, emptyDir: { sizeLimit: 256Mi } }, { name: tmp, emptyDir: { sizeLimit: 32Mi } }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-mailpit
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+spec:
+  selector: { app.kubernetes.io/instance: {{ .Release.Name }}, app.kubernetes.io/component: mailpit }
+  ports: [{ name: smtp, port: 1025, targetPort: smtp }, { name: ui, port: 8025, targetPort: ui }]
+{{- if .Values.networkPolicy.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-mailpit
+  labels: {{- include "bikolbus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: { app.kubernetes.io/instance: {{ .Release.Name }}, app.kubernetes.io/component: mailpit }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {{- include "bikolbus.selector" . | nindent 14 }}
+      ports: [{ port: 1025, protocol: TCP }]
+{{- end }}
+{{- end }}

@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { pool, q, tx } from './db.ts';
 import { expireCheckout, paidPayment } from './paymongo.ts';
 import type { PassengerCategory } from './seatpolicy.ts';
+import { notify } from './notify.ts';
 
 export const HOLD_MINUTES = 15;
 
@@ -69,10 +70,12 @@ export const byRef = async (ref: string): Promise<Booking | null> => (await q<Bo
  * still free; otherwise, or when the amount is wrong, the booking is flagged needs_refund and frees its seats.
  */
 export async function markPaid(checkoutId: string, paymentId: string, amount: number): Promise<Booking | null> {
+  let changed = false;
   return tx(async (c) => {
     const { rows } = await c.query<Booking>('select * from bookings where checkout_id = $1 for update', [checkoutId]);
     const b = rows[0];
     if (!b || (b.status !== 'pending' && b.status !== 'expired')) return b ?? null;
+    changed = true;
     let status: Booking['status'] = amount === b.total_centavos ? 'paid' : 'needs_refund';
     if (status === 'paid' && b.status === 'expired') {
       await c.query('savepoint relock');
@@ -87,6 +90,21 @@ export async function markPaid(checkoutId: string, paymentId: string, amount: nu
     if (status === 'needs_refund') await c.query('delete from trip_seats where booking_id = $1', [b.id]);
     const up = await c.query<Booking>(`update bookings set status = $2, payment_id = $3, paid_at = now() where id = $1 returning *`, [b.id, status, paymentId]);
     return up.rows[0];
+  }).then(async (b) => {
+    if (b && changed) await bookingNotice(b); // only on the transition, not on webhook retries
+    return b;
+  });
+}
+
+/** Booking confirmation or refund notice, in-app and by email. */
+export async function bookingNotice(b: Booking) {
+  const paid = b.status === 'paid';
+  await notify({ userIds: [b.user_id], emails: [b.email] }, {
+    kind: paid ? 'booking.paid' : 'booking.needs_refund',
+    title: paid ? `Ticket ${b.ref}: ${b.pickup} to ${b.dropoff}` : `Refund due for ${b.ref}`,
+    body: paid ? `Paid. ${b.travel_date}, seats ${b.seats.join(', ')}. Show the ticket or the reference at boarding with a valid ID.`
+      : 'Your payment arrived after the seats were taken. The bus company will refund you.',
+    link: `/booking/${b.ref}`,
   });
 }
 
@@ -104,3 +122,10 @@ export async function syncFromPaymongo(b: Booking): Promise<Booking> {
 
 export const bookingsForUser = (userId: string) =>
   q<Booking>(`select * from bookings where user_id = $1 and status <> 'expired' order by travel_date desc, created_at desc limit 200`, [userId]);
+
+/** Card-paid bookings are refunded to the same card through its issuer. */
+export async function refundToCard(cardId: string, amount: number, ref: string) {
+  const { issuerFor } = await import('./cards.ts');
+  const [c] = await q<{ org_id: string }>('select org_id from cards where id = $1', [cardId]);
+  if (c) await issuerFor(c.org_id).refund({ cardId, amount, reference: ref, channel: 'booking refund' });
+}

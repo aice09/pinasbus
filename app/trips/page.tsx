@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { addDays, bookable, BOOKING_WINDOW_DAYS, clock, hasCR, isDate, manilaNow, peso } from '@/lib/catalog';
+import { addDays, bookable, BOOKING_WINDOW_DAYS, clock, hasCR, isDate, longDay, manilaNow, peso } from '@/lib/catalog';
 import { PASSENGER_KINDS } from '@/lib/layouts';
 import { legOf, network, segmentFare, stopTime, takenOn, tripsOn } from '@/lib/trips';
 import { RouteSelects } from '@/components/RouteSelects';
+import Image from 'next/image';
+import { DEFAULT_PLACE, place, stationRegions } from '@/lib/places';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Trips' };
@@ -20,10 +22,15 @@ export default async function Trips({ searchParams }: { searchParams: Promise<{ 
   const to = sp.to && Object.values(pairs).some((l) => l.includes(sp.to!)) ? sp.to : '';
 
   const all = await tripsOn(date);
+  const regions = await stationRegions();
+  const banner = place(regions[to] ?? (regions[from] !== 'metro-manila' ? regions[from] : undefined) ?? DEFAULT_PLACE);
   const found = all.map((t) => ({ t, leg: legOf(t, from || undefined, to || undefined) })).filter((x) => x.leg && x.t.status !== 'cancelled')
     .map(({ t, leg }) => ({ t, leg: leg!, boards: stopTime(t, leg!.i) ?? new Date(t.departs_at) }))
     .sort((a, b) => a.boards.getTime() - b.boards.getTime());
-  const taken = await takenOn(found.map((x) => x.t.id));
+  const walkUp = found.filter((x) => x.t.category_rules?.bookable === false);
+  const lines = [...Map.groupBy(walkUp, (x) => x.t.route_code + x.t.org_id).values()];
+  const bookableFound = found.filter((x) => x.t.category_rules?.bookable !== false);
+  const taken = await takenOn(bookableFound.map((x) => x.t.id));
 
   const href = (d: string) => `/trips?${new URLSearchParams({ ...(from && { from }), ...(to && { to }), date: d })}`;
   const start = date > today ? (addDays(date, -2) < today ? today : addDays(date, -2)) : today;
@@ -31,7 +38,11 @@ export default async function Trips({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <main>
-      <h1 className="page-h">{from || 'Any terminal'} to {to || 'anywhere'}</h1>
+      <div className="trips-banner">
+        <Image src={banner.src} alt="" fill sizes="100vw" className="trips-banner-img" priority />
+        <div className="trips-banner-text"><p>{longDay(date)}</p><h1>{from || 'Any terminal'} → {to || 'anywhere'}</h1></div>
+        <a className="hero2-credit" href={banner.credit.source} target="_blank" rel="noreferrer noopener">Photo: {banner.credit.author} ({banner.credit.license})</a>
+      </div>
       <form className="filters" action="/trips" method="get">
         <RouteSelects pairs={pairs} from={from} to={to} />
         <input type="hidden" name="date" value={date} />
@@ -44,11 +55,27 @@ export default async function Trips({ searchParams }: { searchParams: Promise<{ 
           </Link>
         ))}
       </nav>
-      {found.length === 0 ? (
+      {lines.map((group) => {
+        const { t, leg } = group[0];
+        const now = Date.now(), upcoming = group.filter((x) => x.boards.getTime() > now);
+        const gap = group.length > 1 ? Math.round((group[1].boards.getTime() - group[0].boards.getTime()) / 60_000) : null;
+        return (
+          <article key={t.id} className="trip city">
+            <div className="trip-time">{upcoming[0] ? clock(upcoming[0].boards) : 'Ended'}<small>next at {t.stops[leg.i].name}</small></div>
+            <div className="trip-main">
+              <p className="trip-org">{t.org_name}</p>
+              <h3>{t.stops[leg.i].name} to {t.stops[leg.j].name}</h3>
+              <p className="meta"><span className="chip">City bus</span>{gap && <span className="chip plain">Every {gap} min</span>}<span className="chip no">Walk-up, pay on board</span>{t.sources.some((s) => !s.verified) && <span className="chip no">Indicative fare and times</span>}</p>
+            </div>
+            <div className="trip-buy"><span className="fare">{peso(segmentFare(t, leg.i, leg.j))}</span><Link className="btn quiet" href={`/trips/${(upcoming[0] ?? group[0]).t.id}?${new URLSearchParams({ from: t.stops[leg.i].name, to: t.stops[leg.j].name })}`}>See the line</Link></div>
+          </article>
+        );
+      })}
+      {bookableFound.length === 0 && lines.length === 0 ? (
         <div className="empty"><h2>No trips on this route that day</h2><p>Try another date or a nearby terminal, or <Link href={`/trips?date=${date}`}>see every trip that day</Link>.</p></div>
       ) : (
         <ul className="trips">
-          {found.map(({ t, leg, boards }) => {
+          {bookableFound.map(({ t, leg, boards }) => {
             const seats = t.seats.filter((s) => PASSENGER_KINDS.includes(s.kind)).length;
             const left = seats - (taken.get(t.id) ?? 0);
             const open = bookable(boards) && left > 0 && t.status === 'scheduled';

@@ -2,7 +2,11 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { endSession, hashPassword, safeNext, startSession, verifyPassword } from '@/lib/auth';
+import { endSession, hashPassword, hashToken, safeNext, startMfaChallenge, startSession, takeMfaChallenge, verifyPassword } from '@/lib/auth';
+import { randomBytes } from 'node:crypto';
+import { notify } from '@/lib/notify';
+import { open } from '@/lib/secretbox';
+import { verifyTotp } from '@/lib/totp';
 import { q } from '@/lib/db';
 import { allow } from '@/lib/ratelimit';
 import type { ActionResult } from '@/components/ActionForm';
@@ -36,12 +40,49 @@ export async function signIn(_: ActionResult, f: FormData): Promise<ActionResult
   if (!allow('login:' + (await ip()), 10, 10 * 60_000) || !allow('login:' + email, 5, 10 * 60_000)) {
     return { error: 'Too many attempts. Wait 10 minutes and try again.' };
   }
-  const [u] = await q<{ id: string; password_hash: string }>('select id, password_hash from users where lower(email) = $1', [email]);
+  const [u] = await q<{ id: string; password_hash: string; mfa_enabled: boolean; disabled: boolean }>('select id, password_hash, mfa_enabled, disabled from users where lower(email) = $1', [email]);
   // Same message and similar work either way, so the form doesn't reveal which emails have accounts.
   const ok = u ? await verifyPassword(password, u.password_hash) : (await hashPassword(password), false);
-  if (!u || !ok) return { error: 'Email or password is wrong.' };
+  if (!u || !ok || u.disabled) return { error: 'Email or password is wrong.' };
+  if (u.mfa_enabled) {
+    await startMfaChallenge(u.id, safeNext(f.get('next')));
+    redirect('/login/mfa');
+  }
   await startSession(u.id, email);
   redirect(safeNext(f.get('next')));
+}
+
+export async function verifyMfa(_: ActionResult, f: FormData): Promise<ActionResult> {
+  if (!allow('mfa:' + (await ip()), 10, 10 * 60_000)) return { error: 'Too many attempts. Wait 10 minutes.' };
+  const c = await takeMfaChallenge();
+  if (!c) return { error: 'This sign-in expired. Start again.' };
+  if (!c.mfa_secret || !verifyTotp(open(c.mfa_secret, `mfa:${c.user_id}`), String(f.get('code') ?? '').replace(/\s/g, ''))) return { error: 'That code is wrong or expired.' };
+  await c.done();
+  await startSession(c.user_id, c.email);
+  redirect(c.next);
+}
+
+/** Always answers the same way, so the form does not reveal which emails have accounts. */
+export async function requestReset(_: ActionResult, f: FormData): Promise<ActionResult> {
+  if (!allow('reset:' + (await ip()), 5, 30 * 60_000)) return { error: 'Too many requests. Try again later.' };
+  const email = String(f.get('email') ?? '').trim().toLowerCase().slice(0, 120);
+  const [u] = await q<{ id: string }>('select id from users where lower(email) = $1 and not disabled', [email]);
+  if (u) {
+    const token = randomBytes(32).toString('base64url');
+    await q(`insert into password_resets (token_hash, user_id, expires_at) values ($1,$2, now() + interval '30 minutes')`, [hashToken(token), u.id]);
+    await notify({ emails: [email] }, { kind: 'password.reset', title: 'Reset your PINASBUS password', body: 'Someone asked to reset your password. The link works for 30 minutes. If it was not you, ignore this email.', link: `/reset?token=${token}` });
+  }
+  return { ok: 'If that email has an account, a reset link is on its way. It works for 30 minutes.' };
+}
+
+export async function resetPassword(_: ActionResult, f: FormData): Promise<ActionResult> {
+  const token = String(f.get('token') ?? ''), pw = String(f.get('password') ?? '');
+  if (pw.length < 10 || pw.length > 200) return { error: 'Use at least 10 characters.' };
+  const [r] = await q<{ user_id: string }>(`update password_resets set used_at = now() where token_hash = $1 and used_at is null and expires_at > now() returning user_id`, [hashToken(token)]);
+  if (!r) return { error: 'This link expired or was already used. Ask for a new one.' };
+  await q('update users set password_hash = $2, must_change_password = false where id = $1', [r.user_id, await hashPassword(pw)]);
+  await q('delete from sessions where user_id = $1', [r.user_id]);
+  redirect('/login?changed=1');
 }
 
 export async function signOut() {

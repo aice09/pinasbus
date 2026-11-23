@@ -2,7 +2,7 @@
 
 A multi-operator bus booking and operations platform for the Philippines. Many bus companies, each in its own isolated workspace, share one passenger-facing search with seat selection on a 3D bus and PayMongo payments.
 
-**Docs:** [passenger guide](docs/passenger-guide.md) · [bus company guide](docs/operator-guide.md) · [platform admin guide](docs/platform-admin-guide.md) · [test accounts](docs/test-accounts.md) · [architecture](docs/architecture.md) · [decisions](docs/adr/) · [operations runbook](docs/operations.md) · [HTTP API](docs/api.md) · [compliance checklist](docs/compliance.md) · [roadmap](docs/roadmap.md)
+**Docs:** [passenger guide](docs/passenger-guide.md) · [bus company guide](docs/operator-guide.md) · [platform admin guide](docs/platform-admin-guide.md) · [shipping operator guide](docs/shipping-operator-guide.md) · [card issuer guide](docs/card-issuer-guide.md) · [test accounts](docs/test-accounts.md) · [architecture](docs/architecture.md) · [decisions](docs/adr/) · [operations runbook](docs/operations.md) · [HTTP API](docs/api.md) · [compliance checklist](docs/compliance.md) · [roadmap](docs/roadmap.md)
 
 > Demonstration: the bus companies in the demo data are real, listed from public sources, and **not affiliated** with PINASBUS. See [test-accounts.md](docs/test-accounts.md#demo-data-and-its-sources).
 
@@ -30,6 +30,11 @@ Migrations and the demo seed run automatically on first use.
 | `PLATFORM_ADMIN_EMAILS` | emails that become platform administrators |
 | `DEMO_PASSWORD`, `DEMO_PLATFORM_ADMIN` | demo accounts and whether the demo platform admin is enabled |
 | `METRICS_TOKEN` | bearer token for `/api/metrics` |
+| `APP_SECRET_KEY` | 32-byte base64 key that encrypts two-step sign-in seeds |
+| `MFA_REQUIRED` | `false` only for local development |
+| `SMTP_URL`, `MAIL_FROM` | outgoing email (Mailpit in the chart) |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | AI assistant (hidden without the key) |
+| `JOBS=off` | disable background jobs (tests) |
 
 ## Deploy
 

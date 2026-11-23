@@ -42,6 +42,20 @@ spec:
               value: {{ .Values.publicBaseUrl | default (printf "https://%s" .Values.host) | quote }}
             - name: PAYMONGO_METHODS
               value: {{ .Values.payments.methods | quote }}
+            - name: MFA_REQUIRED
+              value: {{ .Values.mfaRequired | quote }}
+            - name: APP_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: {{ .Release.Name }}-app, key: APP_SECRET_KEY } }
+            - name: SMTP_URL
+              value: {{ .Values.mail.smtpUrl | default (ternary (printf "smtp://%s-mailpit:1025" .Release.Name) "" .Values.mailpit.enabled) | quote }}
+            - name: MAIL_FROM
+              value: {{ .Values.mail.from | quote }}
+            {{- if .Values.ai.existingSecret }}
+            - name: GEMINI_API_KEY
+              valueFrom: { secretKeyRef: { name: {{ .Values.ai.existingSecret }}, key: GEMINI_API_KEY, optional: true } }
+            - name: GEMINI_MODEL
+              valueFrom: { secretKeyRef: { name: {{ .Values.ai.existingSecret }}, key: GEMINI_MODEL, optional: true } }
+            {{- end }}
             - name: PLATFORM_ADMIN_EMAILS
               value: {{ .Values.platformAdminEmails | default .Values.adminEmails | quote }}
             {{- if .Values.demo.accounts }}

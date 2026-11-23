@@ -14,10 +14,11 @@ type Saved = { id: string; full_name: string; label: string; category: Passenger
 type Props = {
   tripId: string; layout: Seat[]; taken: string[]; released: string[];
   stops: { name: string; fare: number; boarding: boolean; alighting: boolean; time: string | null }[];
-  fareAdjust: number; discounts: Discounts; restroom: boolean;
+  fareAdjust: number; minFare?: number; discounts: Discounts; restroom: boolean;
   initialPickup: string; initialDropoff: string; paymentsReady: boolean;
   account: { name: string; email: string; phone: string; category: PassengerCategory } | null;
   saved: Saved[];
+  cards?: { id: string; label: string; balance: number }[];
 };
 type Who = { profileId?: string; name: string; category: PassengerCategory; idType: string; idLast4: string };
 
@@ -35,13 +36,14 @@ export function SeatPicker(p: Props) {
   const [dropoff, setDropoff] = useState(p.initialDropoff);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [payWith, setPayWith] = useState<'online' | string>('online');
 
   useEffect(() => { try { if (document.createElement('canvas').getContext('webgl2')) setView('3d'); } catch { /* keep plan */ } }, []);
 
   const i = p.stops.findIndex((s) => s.name === pickup && s.boarding);
   const dropOptions = p.stops.filter((s, k) => k > i && s.alighting);
   const j = p.stops.findIndex((s, k) => k > i && s.name === dropoff && s.alighting);
-  const segment = i >= 0 && j > i ? segmentFare({ stops: p.stops, fare_adjust_pct: p.fareAdjust }, i, j) : 0;
+  const segment = i >= 0 && j > i ? segmentFare({ stops: p.stops, fare_adjust_pct: p.fareAdjust, min_fare: p.minFare }, i, j) : 0;
   const kindOf = (id: string) => p.layout.find((s) => s.id === id)!.kind;
   const allowedCats = (id: string) => (Object.keys(PASSENGER_CATEGORIES) as PassengerCategory[]).filter((c) => seatAllowed(kindOf(id), c, released.has(id)));
 
@@ -76,12 +78,13 @@ export function SeatPicker(p: Props) {
       const res = await fetch('/api/bookings', {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          tripId: p.tripId, pickup, dropoff,
+          tripId: p.tripId, pickup, dropoff, ...(payWith !== 'online' && { payWith: 'card', cardId: payWith }),
           name: f.get('name'), email: f.get('email'), phone: String(f.get('phone') ?? '').replace(/[\s-]/g, ''),
           seats: ordered.map((seat) => ({ seat, name: who[seat].name, category: who[seat].category, idType: who[seat].idType, idLast4: who[seat].idLast4, ...(who[seat].profileId && { profileId: who[seat].profileId }) })),
         }),
       });
       const body = await res.json().catch(() => ({}));
+      if (res.ok && body.paid && typeof body.ref === 'string') { window.location.assign(`/booking/${body.ref}`); return; }
       if (res.ok && typeof body.checkoutUrl === 'string' && body.checkoutUrl.startsWith('https://')) { window.location.assign(body.checkoutUrl); return; }
       if (res.status === 409 && Array.isArray(body.taken)) {
         const t = new Set<string>(body.taken);
@@ -177,8 +180,16 @@ export function SeatPicker(p: Props) {
         <label className="field">Contact person (as on ID)<input name="name" required minLength={2} maxLength={80} autoComplete="name" defaultValue={p.account?.name} /></label>
         <label className="field">Email for your ticket<input name="email" type="email" required maxLength={120} autoComplete="email" defaultValue={p.account?.email} /></label>
         <label className="field">Mobile number<input name="phone" type="tel" required placeholder="09171234567" pattern="(\+63|0)9[0-9\s\-]{9,13}" autoComplete="tel" defaultValue={p.account?.phone} /></label>
+        {p.cards && p.cards.length > 0 && (
+          <label className="field">Pay with
+            <select value={payWith} onChange={(e) => setPayWith(e.target.value)}>
+              <option value="online">GCash, Maya or card (PayMongo)</option>
+              {p.cards.map((c) => <option key={c.id} value={c.id} disabled={c.balance < total}>{c.label}, balance {peso(c.balance)}{c.balance < total ? ' (not enough)' : ''}</option>)}
+            </select>
+          </label>
+        )}
         {error && <p className="error" role="alert">{error}</p>}
-        {p.paymentsReady
+        {p.paymentsReady || payWith !== 'online'
           ? <button className="btn" type="submit" disabled={busy || !ordered.length || !segment}>{busy ? 'Opening payment…' : ordered.length ? `Pay ${peso(total)}` : `Choose a ${sleeper ? 'berth' : 'seat'}`}</button>
           : <p className="error">Online payment isn&apos;t switched on yet.</p>}
         <p className="note">Seats are held for 15 minutes while you pay with GCash, Maya or card on PayMongo&apos;s secure page.</p>

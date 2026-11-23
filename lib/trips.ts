@@ -10,7 +10,7 @@ export type TripRow = {
   id: string; org_id: string; org_name: string; org_slug: string; org_demo: boolean; org_settings: { seatPolicy?: SeatPolicy; discounts?: Discounts };
   schedule_id: string; code: string; class_name: string; service_date: string; departs_at: Date; status: string;
   seats: Seat[]; route_code: string; route_name: string; stops: Stop[]; itinerary: Leg[]; mode: 'road' | 'road_ferry';
-  category_name: string | null; amenities: string[]; fare_adjust_pct: number; sources: Source[];
+  category_name: string | null; category_id: string | null; category_rules: { bookable?: boolean; note?: string }; min_fare: number; amenities: string[]; fare_adjust_pct: number; sources: Source[];
   bus_id: string | null; bus_code: string | null; plate: string | null; driver_id: string | null; conductor_id: string | null;
 };
 
@@ -28,7 +28,7 @@ export async function ensureTrips(date: string) {
 const SELECT = `
   select t.id, t.org_id, o.name org_name, o.slug org_slug, o.is_demo org_demo, o.settings org_settings,
          t.schedule_id, s.code, s.class_name, t.service_date, t.departs_at, t.status, l.seats,
-         r.code route_code, r.name route_name, r.stops, r.itinerary, r.mode, c.name category_name,
+         r.code route_code, r.name route_name, r.stops, r.min_fare, r.category_id, coalesce(c.rules, '{}') category_rules, r.itinerary, r.mode, c.name category_name,
          coalesce((select array_agg(a.name order by a.name) from amenities a where a.id = any (coalesce(b.amenity_ids, s.amenity_ids))), '{}') amenities,
          s.fare_adjust_pct, s.data_sources sources, t.bus_id, b.code bus_code, b.plate, t.driver_id, t.conductor_id
     from trips t

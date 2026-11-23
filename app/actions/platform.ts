@@ -4,9 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { hashPassword, requirePlatformAdmin } from '@/lib/auth';
 import { q, tx } from '@/lib/db';
-import { seedDemo } from '@/lib/demo';
+import { resetDemoData } from '@/lib/demo';
 import { setRates, setStatus, STATUSES, type ShipmentStatus } from '@/lib/padala';
 import { audit } from '@/lib/tenancy';
+import { adminRoleFor } from '@/lib/rbac';
+import { refundToCard } from '@/lib/bookings';
 import { invalidateNetwork } from '@/lib/trips';
 import type { ActionResult } from '@/components/ActionForm';
 
@@ -36,7 +38,7 @@ export async function createOrg(_: ActionResult, f: FormData): Promise<ActionRes
       const { rows: [u] } = await c.query<{ id: string }>(
         `insert into users (email, name, password_hash, must_change_password) values ($1,$2,$3,true)
          on conflict ((lower(email))) do update set name = users.name returning id`, [d.admin_email, d.admin_name, await hashPassword(pw)]);
-      await c.query(`insert into memberships (user_id, org_id, role) values ($1,$2,'company_admin') on conflict do nothing`, [u.id, o.id]);
+      await c.query(`insert into memberships (user_id, org_id, role) values ($1,$2,$3) on conflict do nothing`, [u.id, o.id, adminRoleFor(d.kind)]);
       await c.query(`insert into audit_log (actor_id, org_id, action, entity, entity_id, data) values ($1,$2,'org.create','organization',$2,$3)`, [me.id, o.id, JSON.stringify({ name: d.name, admin: d.admin_email })]);
     });
   } catch (e) {
@@ -97,8 +99,9 @@ export async function setUserDisabled(_: ActionResult, f: FormData): Promise<Act
 export async function markRefunded(_: ActionResult, f: FormData): Promise<ActionResult> {
   const me = await requirePlatformAdmin();
   const id = String(f.get('id'));
-  const r = await q<{ org_id: string }>(`update bookings set status = 'refunded' where id = $1 and status in ('needs_refund', 'paid') returning org_id`, [id]);
+  const r = await q<{ org_id: string; paid_with: string; card_id: string | null; total_centavos: number; ref: string }>(`update bookings set status = 'refunded' where id = $1 and status in ('needs_refund', 'paid') returning org_id, paid_with, card_id, total_centavos, ref`, [id]);
   if (!r.length) return { error: 'Only paid or needs-refund bookings can be refunded.' };
+  if (r[0].paid_with === 'card' && r[0].card_id) await refundToCard(r[0].card_id, r[0].total_centavos, r[0].ref);
   await q('delete from trip_seats where booking_id = $1', [id]);
   await audit(me.id, r[0].org_id, 'booking.refund', 'booking', id);
   revalidatePath('/platform/bookings');
@@ -138,11 +141,7 @@ export async function resetDemo(_: ActionResult, f: FormData): Promise<ActionRes
   const me = await requirePlatformAdmin();
   if (f.get('confirm') !== 'RESET') return { error: 'Type RESET to confirm.' };
   await tx(async (c) => {
-    await c.query(`delete from bookings where org_id in (select id from organizations where is_demo)`);
-    await c.query(`delete from users where email like '%.demo.pinasbus.test' or email like '%@demo.pinasbus.test'`);
-    await c.query(`delete from organizations where is_demo`);
-    await c.query(`delete from stations s where not exists (select 1 from routes r where r.stops @> jsonb_build_array(jsonb_build_object('name', s.name)))`);
-    await seedDemo(c);
+    await resetDemoData(c);
     await c.query(`insert into audit_log (actor_id, action, entity) values ($1, 'demo.reset', 'platform')`, [me.id]);
   });
   invalidateNetwork();
