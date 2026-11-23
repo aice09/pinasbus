@@ -516,3 +516,4 @@ select, input, textarea { border-radius: 12px; }
   background: radial-gradient(circle at 85% 15%, rgba(255,255,255,.25), transparent 40%), linear-gradient(135deg, #1f4d3a, #0f2a20 60%, #c8322b 140%); box-shadow: 0 14px 30px rgba(20,60,40,.35); }
 .tcard-issuer { font-weight: 700; opacity: .9; } .tcard-num { font-size: 1.15rem; letter-spacing: .06em; } .tcard-bal { font: 800 1.6rem var(--font-display); } .tcard-prog { font-size: .82rem; opacity: .8; }
 @media print { .ai, .demo-banner { display: none; } }
+@media (max-width: 640px) { .ai-fab span { display: none; } .ai-fab { padding: 14px; } .ai { bottom: 12px; right: 12px; } }
