@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { liveryOf } from '@/lib/livery';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { currentUser } from '@/lib/auth';
@@ -52,7 +53,7 @@ export default async function TripPage({ params, searchParams }: { params: Promi
         <p className="warnbox">{trip.category_rules.note ?? 'Walk-up service: pay on board'}. Fare from {leg ? trip.stops[leg.i].name : 'here'} to {leg ? trip.stops[leg.j].name : 'there'}: {leg ? peso(segmentFare(trip, leg.i, leg.j)) : '—'}.</p>
         <div className="split">
           <RouteLine stops={trip.stops} from={leg ? trip.stops[leg.i].name : undefined} to={leg ? trip.stops[leg.j].name : undefined} departsAt={new Date(trip.departs_at)} title={trip.route_name} />
-          <TrackMap tripId={trip.id} height={520} />
+          <TrackMap tripId={trip.id} height={520} livery={liveryOf(trip.org_slug, trip.org_settings)} />
         </div>
       </main>
     );
@@ -81,6 +82,7 @@ export default async function TripPage({ params, searchParams }: { params: Promi
         account={user ? { name: user.name, email: user.email, phone: user.phone, category: user.passenger_category } : null}
         saved={saved}
         cards={cards}
+        livery={liveryOf(trip.org_slug, trip.org_settings)}
       />
       <section className="section" aria-labelledby="route-h">
         <h2 id="route-h">Planned route</h2>

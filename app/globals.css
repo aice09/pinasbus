@@ -548,3 +548,56 @@ select, input, textarea { border-radius: 12px; }
 .oplist span { color: var(--ash); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .band { padding: 32px; gap: 18px; }
 .band h2 { margin-bottom: 4px; }
+
+/* ===== Motion: page entry, hero, and controls that answer a tap ===== */
+.page-enter { animation: page-in .42s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes page-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.btn, .theme-opt, .avatar-opt, .dest, .trip, .quick-route { transition: transform .18s ease, filter .18s ease, box-shadow .2s ease, border-color .2s ease; }
+.btn:active { transform: scale(.97); }
+.trip:hover, .quick-route:hover { transform: translateY(-2px); }
+@media (prefers-reduced-motion: reduce) {
+  .page-enter, .journey-title { animation: none; }
+  .btn, .theme-opt, .avatar-opt, .dest, .trip, .quick-route, .dest-img { transition: none; }
+  .trip:hover, .quick-route:hover, .dest:hover .dest-img { transform: none; }
+}
+
+/* ===== Profile and appearance ===== */
+.avatar { border-radius: 50%; display: block; flex: none; background: var(--pili-soft); }
+.me-chip { display: inline-flex; align-items: center; gap: .5rem; padding: 3px 12px 3px 3px; border: 1px solid var(--line); border-radius: 99px; text-decoration: none; color: var(--ink); font-weight: 700; font-size: .92rem; }
+.me-chip:hover { border-color: var(--pili); }
+.side-who { grid-template-columns: auto 1fr; align-items: center; column-gap: .7rem; }
+.side-who .avatar { grid-row: span 2; }
+.profile { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.25rem; padding: 20px; margin: 8px 0 18px; border-radius: var(--radius-l); background: linear-gradient(120deg, var(--pili) 0%, color-mix(in srgb, var(--pili) 70%, var(--sili)) 100%); color: #fff; }
+.profile > div { flex: 1 1 240px; display: grid; gap: .2rem; }
+.profile h1 { margin: 0; font-size: clamp(1.5rem, 4vw, 2.1rem); color: #fff; }
+.profile p { margin: 0; color: rgba(255, 255, 255, .9); }
+.profile a:not(.btn) { color: #fff; }
+.profile .btn.quiet { color: #fff; border-color: rgba(255, 255, 255, .7); }
+.profile .avatar { background: #fff; box-shadow: 0 0 0 4px rgba(255, 255, 255, .35); }
+.profile-facts { font-size: .9rem; }
+.avatars, .themes { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+.avatars legend, .themes legend { font-weight: 700; margin-bottom: 8px; padding: 0; }
+.avatar-opt, .theme-opt { position: relative; display: grid; justify-items: center; gap: 6px; padding: 12px 8px; border: 1.5px solid var(--line); border-radius: var(--radius-s); background: var(--surface); cursor: pointer; text-align: center; font-size: .88rem; }
+.avatar-opt img { border-radius: 50%; }
+.avatar-opt input, .theme-opt input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.avatar-opt:has(input:checked), .theme-opt:has(input:checked) { border-color: var(--sili); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sili) 25%, transparent); }
+.avatar-opt:has(input:focus-visible), .theme-opt:has(input:focus-visible) { outline: 3px solid var(--pili); outline-offset: 2px; }
+.themes .field { grid-column: 1 / -1; }
+.swatches { display: flex; width: 100%; height: 34px; border-radius: 8px; overflow: hidden; }
+.swatches i { flex: 1; }
+.swatches.empty { background: repeating-linear-gradient(45deg, var(--line) 0 6px, transparent 6px 12px); }
+
+/* ===== Journey map ===== */
+.track-wrap { position: relative; }
+.track-wrap.journey .track-map { border-radius: var(--radius-l); }
+.journey-ctl { position: absolute; left: 12px; bottom: 34px; display: flex; gap: 8px; }
+.journey-ctl .btn.quiet { background: var(--surface); }
+.journey-title {
+  position: absolute; left: 50%; top: 18px; transform: translateX(-50%); margin: 0; max-width: calc(100% - 32px);
+  font: 900 clamp(1.4rem, 4.6vw, 2.6rem)/1.05 var(--font-display); font-stretch: 75%; text-align: center; color: #ffd23f;
+  -webkit-text-stroke: 2px #1a1f1c; paint-order: stroke fill; text-shadow: 0 4px 0 #1a1f1c; letter-spacing: .01em;
+  animation: journey-in .7s cubic-bezier(.2, 1.4, .4, 1) both; pointer-events: none;
+}
+.journey-title.done { color: #fff; }
+@keyframes journey-in { from { opacity: 0; transform: translate(-50%, -16px) scale(.9); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+.livery-note { position: absolute; left: 12px; top: 10px; font-size: .78rem; color: var(--ash); background: color-mix(in srgb, var(--surface) 85%, transparent); padding: 2px 8px; border-radius: 99px; }

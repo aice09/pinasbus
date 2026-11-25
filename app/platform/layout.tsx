@@ -18,6 +18,7 @@ export default async function PlatformLayout({ children }: { children: React.Rea
           <Link href="/platform/padala">Padala</Link>
           <Link href="/platform/users">Users</Link>
           <Link href="/platform/messages">Messages</Link>
+          <Link href="/platform/appearance">Appearance</Link>
           <Link href="/platform/audit">Audit log</Link>
           <Link href="/account">My account</Link>
         </nav>

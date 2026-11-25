@@ -28,6 +28,8 @@ export default function About() {
       <p>Every company page and route shows its source and the date it was checked. Always confirm times and fares with the bus company before you travel.</p>
       <h2>How we handle your data</h2>
       <p>We keep only what a ticket or a package needs, never store card numbers, and let you delete your account at any time. Read the <Link href="/privacy">privacy notice</Link>.</p>
+      <h2>Credits</h2>
+      <p>Maps: OpenFreeMap tiles with OpenStreetMap data. Destination photos: Wikimedia Commons, credited on each photo. Avatars: DiceBear styles (CC0) and <a href="https://multiavatar.com" rel="noreferrer noopener">Multiavatar</a> (Multiavatar License v1.0).</p>
       <p><Link className="btn" href="/trips">Find a trip</Link></p>
     </main>
   );

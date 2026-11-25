@@ -4,6 +4,7 @@ import { orgCtx, orgDiscounts, orgPolicy } from '@/lib/tenancy';
 import { ActionForm } from '@/components/ActionForm';
 import { DEFAULT_BAGGAGE } from '@/lib/baggage';
 import { DEFAULT_TRACKING } from '@/lib/tracking';
+import { liveryOf } from '@/lib/livery';
 import { OrgField } from '@/components/OrgField';
 
 export const metadata: Metadata = { title: 'Company settings' };
@@ -13,6 +14,7 @@ export default async function Settings({ params }: { params: Promise<{ slug: str
   const c = await orgCtx(slug, 'org.manage');
   const policy = orgPolicy(c.org), d = orgDiscounts(c.org);
   const bag = { ...DEFAULT_BAGGAGE, ...(c.org.settings.baggage ?? {}) }, trk = { ...DEFAULT_TRACKING, ...(c.org.settings.tracking ?? {}) };
+  const liv = liveryOf(c.org.slug, c.org.settings);
   return (
     <>
       <h1 className="page-h">Company settings</h1>
@@ -62,6 +64,14 @@ export default async function Settings({ params }: { params: Promise<{ slug: str
             <label className="field">Speed limit (km/h)<input name="speedLimitKph" type="number" min="20" max="140" defaultValue={trk.speedLimitKph} /></label>
             <label className="field">Off-route after (km)<input name="deviationKm" type="number" min="0.2" step="0.1" defaultValue={trk.deviationKm} /></label>
             <label className="field">Unusual stop after (minutes)<input name="unusualStopMinutes" type="number" min="5" defaultValue={trk.unusualStopMinutes} /></label>
+          </div>
+        </section>
+        <section className="panel">
+          <h2>Bus colours</h2>
+          <p className="note">The paint passengers see on the 3D bus when they pick a seat. Colours only; PINASBUS does not show company logos.</p>
+          <div className="row3">
+            <label className="field">Body<input name="livery_body" type="color" defaultValue={liv.body} /></label>
+            <label className="field">Stripe and window pillars<input name="livery_trim" type="color" defaultValue={liv.trim} /></label>
           </div>
         </section>
         <section className="panel">

@@ -7,7 +7,7 @@ export type Stop = { station_id: string | null; name: string; offset_min: number
 export type Leg = { type: 'expressway' | 'highway' | 'ferry' | 'city'; name: string; from: string; to: string; toll: boolean };
 export type Source = { url: string; verified_at: string; what: string; verified: boolean };
 export type TripRow = {
-  id: string; org_id: string; org_name: string; org_slug: string; org_demo: boolean; org_settings: { seatPolicy?: SeatPolicy; discounts?: Discounts };
+  id: string; org_id: string; org_name: string; org_slug: string; org_demo: boolean; org_settings: { seatPolicy?: SeatPolicy; discounts?: Discounts; livery?: { body: string; trim: string } };
   schedule_id: string; code: string; class_name: string; service_date: string; departs_at: Date; status: string;
   seats: Seat[]; route_code: string; route_name: string; stops: Stop[]; itinerary: Leg[]; mode: 'road' | 'road_ferry';
   category_name: string | null; category_id: string | null; category_rules: { bookable?: boolean; note?: string }; min_fare: number; amenities: string[]; fare_adjust_pct: number; sources: Source[];

@@ -5,6 +5,9 @@ import { currentUser } from '@/lib/auth';
 import { unreadCount } from '@/lib/notify';
 import { assistantEnabled } from '@/lib/assistant';
 import { Assistant } from '@/components/Assistant';
+import { Avatar } from '@/components/Avatar';
+import { platformPalette } from '@/lib/appearance';
+import { DEFAULT_PALETTE, deriveTheme, themeCss } from '@/lib/theme';
 import './globals.css';
 
 const display = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-display' });
@@ -23,8 +26,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const user = await currentUser().catch(() => null);
   const ops = user?.memberships.filter((m) => m.org_kind === 'bus_operator') ?? [];
   const unread = user ? await unreadCount(user.id).catch(() => 0) : 0;
+  // The stylesheet is the Pili palette; any other palette (the user's, else the platform's) overrides its tokens.
+  const palette = user?.theme_palette ?? (await platformPalette());
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
+      <head>{palette !== DEFAULT_PALETTE && <style id="theme">{themeCss(deriveTheme(palette))}</style>}</head>
       <body>
         <a className="skip" href="#main">Skip to content</a>
         <p className="demo-banner" role="note">
@@ -52,7 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5-6.7V3.5a2 2 0 0 0-4 0v.8A7 7 0 0 0 5 11v5l-2 2v1h18v-1Z" fill="currentColor" /></svg>
                   {unread > 0 && <span className="bell-n">{unread > 9 ? '9+' : unread}</span>}
                 </Link>
-                <Link href="/account" className="btn quiet small">{user.name.split(' ')[0]}</Link>
+                <Link href="/account" className="me-chip"><Avatar style={user.avatar_style} seed={user.avatar_seed} name={user.name} size={30} />{user.name.split(' ')[0]}</Link>
               </>
             ) : (
               <>

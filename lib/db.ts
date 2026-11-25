@@ -485,6 +485,11 @@ const MIGRATIONS: string[] = [
   );
   create table job_runs (name text primary key, last_run timestamptz not null);
   alter table bookings add column reminded_at timestamptz;`,
+  `-- profiles and themes
+  alter table users add column avatar_style text not null default 'notionists';
+  alter table users add column avatar_seed text;
+  alter table users add column bio text not null default '';
+  alter table users add column theme_palette text;`,
 ];
 
 async function migrate() {

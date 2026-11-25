@@ -1,4 +1,5 @@
 'use server';
+import { isHex } from '@/lib/livery';
 // Company workspace actions. Each one: resolve the company from the form's `org` slug, check one fixed permission
 // for the caller's role there, validate input, touch only rows with that org_id, and write the audit log.
 import { randomBytes } from 'node:crypto';
@@ -44,7 +45,8 @@ export async function saveCompany(_: ActionResult, f: FormData): R {
   const settings = { ...c.org.settings, seatPolicy: { releaseHoursBefore: d.releaseHoursBefore, releaseKinds: kinds }, discounts: { regular: 0, senior: d.d_senior, pwd: d.d_pwd, student: d.d_student, child: d.d_child },
     baggage: { freeKgPerSeat: d.freeKgPerSeat, excessPerKgCentavos: Math.round(d.excessPerKg * 100), maxBagsPerSeat: d.maxBagsPerSeat },
     tracking: { speedLimitKph: d.speedLimitKph, deviationKm: d.deviationKm, unusualStopMinutes: d.unusualStopMinutes },
-    payments: { online: true, cards: f.get('accept_cards') === 'on', cash: true } };
+    payments: { online: true, cards: f.get('accept_cards') === 'on', cash: true },
+    livery: isHex(f.get('livery_body')) && isHex(f.get('livery_trim')) ? { body: String(f.get('livery_body')), trim: String(f.get('livery_trim')) } : c.org.settings.livery };
   await q('update organizations set contact_email = $2, contact_phone = $3, address = $4, settings = $5 where id = $1', [c.org.id, d.contact_email, d.contact_phone, d.address, JSON.stringify(settings)]);
   await audit(c.user.id, c.org.id, 'company.settings', 'organization', c.org.id, settings);
   return done(c, '/settings', 'Saved. New bookings use these rules right away.');

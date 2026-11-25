@@ -78,3 +78,7 @@ On a trip whose route includes a ferry leg, **Ferry connection** offers sailings
 ## Payments
 
 **Company settings → Payment methods:** online payments through PayMongo and cash at the terminal are always on. Tick **Accept transport cards** to let passengers pay with PINASBUS-supported cards.
+
+## Bus colours
+
+**Company settings > Bus colours** sets the body and stripe colours of the 3D bus that passengers see when they pick a seat and on the journey map. PINASBUS shows colours only, never logos. Demo companies start with colours resembling their buses from public photos; they are approximations, not brand assets.

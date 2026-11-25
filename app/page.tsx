@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { liveryOf } from '@/lib/livery';
 import Link from 'next/link';
 import { addDays, BOOKING_WINDOW_DAYS, manilaNow, peso } from '@/lib/catalog';
 import { q } from '@/lib/db';
@@ -82,7 +83,7 @@ export default async function Home() {
           <p>Pay with GCash, Maya, a card or a PINASBUS transport card. Register your bags on the ticket, then follow the bus on a live map.</p>
           <p><Link className="btn" href="/trips">Find a trip</Link></p>
         </div>
-        {showcase && <FleetPreview layout={showcase.seats} restroom start3d />}
+        {showcase && <FleetPreview layout={showcase.seats} restroom start3d livery={liveryOf('bicol-isarog', null)} />}
       </section>
 
       <section className="section" aria-labelledby="ops-h">

@@ -16,6 +16,7 @@ export type User = {
   id: string; email: string; name: string; phone: string; created_at: Date;
   platform_role: 'none' | 'platform_admin'; passenger_category: PassengerCategory; id_type: string; id_last4: string;
   must_change_password: boolean; mfa_enabled: boolean; memberships: Membership[];
+  avatar_style: string; avatar_seed: string; bio: string; theme_palette: string | null;
 };
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -45,7 +46,8 @@ export const currentUser = cache(async (): Promise<User | null> => {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token || token.length > 100) return null;
   const rows = await q<Omit<User, 'memberships'>>(
-    `select u.id, u.email, u.name, u.phone, u.created_at, u.platform_role, u.passenger_category, u.id_type, u.id_last4, u.must_change_password, u.mfa_enabled
+    `select u.id, u.email, u.name, u.phone, u.created_at, u.platform_role, u.passenger_category, u.id_type, u.id_last4, u.must_change_password, u.mfa_enabled,
+            u.avatar_style, coalesce(u.avatar_seed, u.id::text) avatar_seed, u.bio, u.theme_palette
        from sessions s join users u on u.id = s.user_id
       where s.token_hash = $1 and s.expires_at > now() and not u.disabled`, [sha(token)]);
   if (!rows[0]) return null;

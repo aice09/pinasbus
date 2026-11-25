@@ -14,6 +14,9 @@
   },
   "license": "UNLICENSED",
   "dependencies": {
+    "@dicebear/collection": "^9.4.3",
+    "@dicebear/core": "^9.4.3",
+    "@multiavatar/multiavatar": "^1.0.7",
     "@react-three/fiber": "^9.8.2",
     "maplibre-gl": "^6.19.0",
     "next": "^16.4.6",

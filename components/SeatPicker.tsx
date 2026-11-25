@@ -1,5 +1,6 @@
 'use client';
 import dynamic from 'next/dynamic';
+import type { Livery } from '@/lib/livery';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { peso } from '@/lib/catalog';
@@ -19,6 +20,7 @@ type Props = {
   account: { name: string; email: string; phone: string; category: PassengerCategory } | null;
   saved: Saved[];
   cards?: { id: string; label: string; balance: number }[];
+  livery?: Livery;
 };
 type Who = { profileId?: string; name: string; category: PassengerCategory; idType: string; idLast4: string };
 
@@ -95,7 +97,7 @@ export function SeatPicker(p: Props) {
     setBusy(false);
   }
 
-  const shared = { layout: p.layout, taken, released, selected, onToggle: toggle, restroom: p.restroom };
+  const shared = { layout: p.layout, taken, released, selected, onToggle: toggle, restroom: p.restroom, livery: p.livery };
   const free = p.layout.filter((s) => PASSENGER_KINDS.includes(s.kind) && !taken.has(s.id)).length;
   const sleeper = p.layout.some((s) => s.berth);
   const kinds = [...new Set(p.layout.map((s) => s.kind))].filter((k) => k !== 'regular');

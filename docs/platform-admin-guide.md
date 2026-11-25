@@ -32,3 +32,7 @@ People reset their own password from **Forgot your password?** on the sign-in pa
 - **Email:** every notification and password reset is written to an outbox and sent by a background job. The bundled Mailpit catches all mail; open its inbox with `kubectl -n bikolbus port-forward svc/bikolbus-mailpit 8025` then http://localhost:8025. For real delivery set `mail.smtpUrl`.
 - **AI assistant:** uses the Gemini key in Secret `bikolbus-ai` (copied from AKADEMIA's configuration). Remove the Secret to hide it.
 - **Demo data:** reloads automatically when the seed version changes (`DEMO_AUTO_RESET=false` turns that off). **Reset demo data** reloads it on demand. Neither touches real companies.
+
+## Appearance
+
+**Platform > Appearance** sets the colours everyone sees unless they choose their own: one of the built-in palettes or any colorhunt.co palette link. The change is recorded in the audit log.

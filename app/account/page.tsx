@@ -8,6 +8,7 @@ import type { Shipment } from '@/lib/padala';
 import { roleName } from '@/lib/tenancy';
 import { orgNames } from '@/lib/orgs';
 import { BookingList, ShipmentList } from '@/components/Lists';
+import { Avatar } from '@/components/Avatar';
 
 export const metadata: Metadata = { title: 'Your account' };
 
@@ -26,7 +27,15 @@ export default async function Overview({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <h1 className="page-h">Hello, {u.name.split(' ')[0]}</h1>
+      <section className="profile" aria-labelledby="hello">
+        <Avatar style={u.avatar_style} seed={u.avatar_seed} name={u.name} size={84} />
+        <div>
+          <h1 id="hello">Hello, {u.name.split(' ')[0]}</h1>
+          <p>{u.bio || <Link href="/account/settings">Add a line about yourself</Link>}</p>
+          <p className="profile-facts">{bookings.filter((b) => b.status === 'paid').length} trips booked, member since {new Intl.DateTimeFormat('en-PH', { month: 'long', year: 'numeric' }).format(u.created_at)}</p>
+        </div>
+        <Link className="btn quiet small" href="/account/settings">Edit profile</Link>
+      </section>
       {denied && <p className="error" role="alert">You don&apos;t have access to that page.</p>}
       {u.must_change_password && <p className="warnbox">This is a demo account with a shared password. <Link href="/account/settings">Change your password</Link> before using it.</p>}
       {(work.length > 0 || u.platform_role === 'platform_admin') && (

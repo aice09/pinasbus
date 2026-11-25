@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { liveryOf } from '@/lib/livery';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { hasCR, manilaNow, peso, time12 } from '@/lib/catalog';
@@ -50,7 +51,7 @@ export default async function Operator({ params }: { params: Promise<{ slug: str
         {classes.map((c) => (
           <div key={c.name} className="fleet">
             <div><h3>{c.name}</h3><p>{hasCR(c.amenities) ? 'Restroom (CR) on board.' : 'No restroom on board.'} {c.amenities.filter((a) => a !== 'Restroom / CR').join(', ')}.</p></div>
-            <FleetPreview layout={c.seats} restroom={hasCR(c.amenities)} />
+            <FleetPreview layout={c.seats} restroom={hasCR(c.amenities)} livery={liveryOf(o.slug, o.settings)} />
           </div>
         ))}
       </section>

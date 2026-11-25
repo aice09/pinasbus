@@ -10,7 +10,7 @@ import { DEFAULT_DISCOUNTS, DEFAULT_POLICY, type Discounts, type SeatPolicy } fr
 export type Org = {
   id: string; kind: 'platform' | 'bus_operator' | 'card_issuer' | 'shipping_operator'; name: string; slug: string;
   status: 'pending' | 'active' | 'suspended'; contact_email: string; contact_phone: string; address: string;
-  settings: { seatPolicy?: SeatPolicy; discounts?: Discounts; baggage?: { freeKgPerSeat: number; excessPerKgCentavos: number; maxBagsPerSeat: number }; tracking?: { speedLimitKph: number; deviationKm: number; unusualStopMinutes: number }; payments?: { online: boolean; cards: boolean; cash: boolean } }; is_demo: boolean; data_sources: { url: string; verified_at: string; what: string; verified: boolean }[];
+  settings: { seatPolicy?: SeatPolicy; discounts?: Discounts; baggage?: { freeKgPerSeat: number; excessPerKgCentavos: number; maxBagsPerSeat: number }; tracking?: { speedLimitKph: number; deviationKm: number; unusualStopMinutes: number }; payments?: { online: boolean; cards: boolean; cash: boolean }; livery?: { body: string; trim: string } }; is_demo: boolean; data_sources: { url: string; verified_at: string; what: string; verified: boolean }[];
 };
 export type Ctx = { user: User; org: Org; role: Role; can: (p: Permission) => boolean; platform: boolean };
 

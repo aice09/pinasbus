@@ -10,6 +10,7 @@ import { audit } from '@/lib/tenancy';
 import { adminRoleFor } from '@/lib/rbac';
 import { refundToCard } from '@/lib/bookings';
 import { invalidateNetwork } from '@/lib/trips';
+import { parseColorHunt } from '@/lib/theme';
 import type { ActionResult } from '@/components/ActionForm';
 
 const tempPassword = () => randomBytes(9).toString('base64url');
@@ -147,4 +148,15 @@ export async function resetDemo(_: ActionResult, f: FormData): Promise<ActionRes
   invalidateNetwork();
   revalidatePath('/', 'layout');
   return { ok: 'Demo data reset.' };
+}
+
+export async function savePlatformTheme(_: unknown, f: FormData): Promise<{ error?: string; ok?: string }> {
+  const me = await requirePlatformAdmin();
+  const choice = String(f.get('theme_choice') ?? '');
+  const palette = parseColorHunt(choice === 'custom' ? String(f.get('theme_link') ?? '') : choice);
+  if (!palette) return { error: 'Choose a palette or paste a Color Hunt link.' };
+  await q(`insert into settings (key, value) values ('theme', $1) on conflict (key) do update set value = $1`, [JSON.stringify({ palette })]);
+  await audit(me.id, null, 'platform.theme', 'settings', 'theme', { palette });
+  revalidatePath('/', 'layout');
+  return { ok: 'Saved. Everyone without their own colours now sees this palette.' };
 }

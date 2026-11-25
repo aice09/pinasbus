@@ -7,6 +7,8 @@ import { notify } from '@/lib/notify';
 import { open as openSealed, seal } from '@/lib/secretbox';
 import { newSecret, verifyTotp } from '@/lib/totp';
 import { q } from '@/lib/db';
+import { AVATAR_STYLES } from '@/lib/avatar';
+import { parseColorHunt } from '@/lib/theme';
 import type { ActionResult } from '@/components/ActionForm';
 
 const PHONE = /^((\+63|0)9\d{9})?$/;
@@ -115,4 +117,25 @@ export async function markNotificationsRead(_: ActionResult): Promise<ActionResu
   await q('update notifications set read_at = now() where user_id = $1 and read_at is null', [u.id]);
   revalidatePath('/', 'layout');
   return { ok: 'All caught up.' };
+}
+
+/** Reads a ThemePicker's fields: a preset palette, a Color Hunt link, or '' for the platform default. */
+function themeFrom(f: FormData): string | null | { error: string } {
+  const choice = String(f.get('theme_choice') ?? '');
+  if (!choice) return null;
+  const p = parseColorHunt(choice === 'custom' ? String(f.get('theme_link') ?? '') : choice);
+  return p ?? { error: 'That is not a Color Hunt palette link.' };
+}
+
+export async function saveAppearance(_: ActionResult, f: FormData): Promise<ActionResult> {
+  const u = await requireUser('/account/settings');
+  const theme = themeFrom(f);
+  if (theme && typeof theme === 'object') return theme;
+  const style = String(f.get('avatar_style') ?? '');
+  if (!AVATAR_STYLES.some(([id]) => id === style)) return { error: 'Choose an avatar style.' };
+  const seed = String(f.get('avatar_seed') ?? '').trim().slice(0, 40) || null;
+  const bio = String(f.get('bio') ?? '').trim().slice(0, 280);
+  await q('update users set avatar_style = $2, avatar_seed = $3, bio = $4, theme_palette = $5 where id = $1', [u.id, style, seed, bio, theme]);
+  revalidatePath('/', 'layout');
+  return { ok: 'Saved. Your profile and colours are updated.' };
 }

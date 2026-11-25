@@ -91,3 +91,15 @@ Refunds of card-paid tickets go back to the card.
 - **Account → Security** turns on two-step sign-in with an authenticator app. It is required for administrator and finance roles.
 - **Forgot your password?** on the sign-in page emails a reset link that works for 30 minutes, once.
 - **Ask PINASBUS** (bottom-right) is an AI assistant. It answers from live schedules and can find trips and fares, check a ticket by reference, or say where your bus is. It can't book or refund, and the trip and ticket pages are authoritative.
+
+## Your profile and colours
+
+Open **Account > Settings > Profile picture and colours**:
+
+- **Avatar:** pick a style. The "avatar word" draws a different face for each word you type.
+- **About you:** one line shown on your account page.
+- **Colours:** keep the platform default, pick a palette, or paste any four-colour palette link from colorhunt.co. The page previews your choice before you save, and colours are adjusted so text stays readable.
+
+## Play the journey
+
+On a trip's tracking map, **Play the journey** flies a tilted camera behind a small 3D bus along the whole route while the line draws in, then zooms out when it arrives. It is an animation of the planned route, not live GPS. **Back to live map** returns to the live position.

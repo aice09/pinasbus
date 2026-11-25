@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { liveryOf } from '@/lib/livery';
 import { saveLayout } from '@/app/actions/ops';
 import { q } from '@/lib/db';
 import { PASSENGER_KINDS, type Seat } from '@/lib/layouts';
@@ -34,7 +35,7 @@ export default async function Layouts({ params }: { params: Promise<{ slug: stri
               <summary><strong>{l.name}</strong><span className="note">{l.seats.filter((s) => PASSENGER_KINDS.includes(s.kind)).length} passenger seats, {l.seats.filter((s) => ['senior', 'pwd', 'priority'].includes(s.kind)).length} priority. Used by {l.buses} buses and {l.schedules} schedules.</span></summary>
               {manage
                 ? <ActionForm action={saveLayout} submit="Save changes"><OrgField slug={slug} /><input type="hidden" name="id" value={l.id} /><label className="field">Name<input name="name" required defaultValue={l.name} /></label><LayoutEditor initial={l.seats} /></ActionForm>
-                : <FleetPreview layout={l.seats} restroom={false} />}
+                : <FleetPreview layout={l.seats} restroom={false} livery={liveryOf(c.org.slug, c.org.settings)} />}
             </details>
           </li>
         ))}
